@@ -5,7 +5,7 @@ interface ButtonProps {
 
 export default function Button({ variant = "primary", children }: ButtonProps) {
   const baseStyles =
-    "px-6 py-2 rounded-lg font-medium text-white transition-all duration-300 cursor-pointer";
+    "px-6 py-2 rounded-lg font-medium text-white transition-all duration-300 cursor-pointer hover:-translate-y-2";
 
   const variants = {
     primary:
