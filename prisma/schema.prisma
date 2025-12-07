@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum ScheduleStatus {
+  DRAFTED
+  PUBLISHED
+}
+
+model User {
+  id        Int             @id @default(autoincrement())
+  name      String
+  email     String          @unique
+  role      Role            @default(USER)
+  createdAt DateTime        @default(now())
+
+  schedules ScheduleEntry[] 
+}
+
+model ScheduleBatch {
+  id        Int             @id @default(autoincrement())
+  status    ScheduleStatus  @default(DRAFTED)
+  createdAt DateTime        @default(now())
+
+  entries   ScheduleEntry[]
+}
+
+model ScheduleEntry {
+  id         Int            @id @default(autoincrement())
+  date       DateTime
+  startTime  String
+  endTime    String
+  totalHours Int
+
+  userId     Int
+  user       User           @relation(fields: [userId], references: [id])
+
+  batchId    Int
+  batch      ScheduleBatch  @relation(fields: [batchId], references: [id])
+}
