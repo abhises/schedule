@@ -3,7 +3,10 @@ import { UserButton } from '@clerk/nextjs'
 
 const page = () => {
   return (
-    <div>Welecome to dashboard <UserButton/></div>
+<div className="flex items-center gap-7 justify-between w-full px-4 py-2 bg-gray-100 rounded">
+  <span>Welcome to dashboard</span>
+  <UserButton />
+</div>
   )
 }
 

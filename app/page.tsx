@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import Button from "../components/ui/Button";
+import CustomButton from "../components/ui/custom-button";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 
@@ -67,7 +67,7 @@ export default function HeroSectionOne() {
           className="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-4"
         >
           <Link href={"/sign-in"}>
-            <Button> Explore Now</Button>{" "}
+            <CustomButton> Explore Now</CustomButton>{" "}
           </Link>
           <button className="w-60 transform rounded-lg border border-gray-300 bg-white px-6 py-2 font-medium text-black transition-all duration-300 hover:-translate-y-2 hover:bg-gray-100 dark:border-gray-700 dark:bg-black dark:text-white dark:hover:bg-gray-900 cursor-pointer">
             Contact Support
@@ -91,7 +91,7 @@ const Navbar = () => {
       <div className="flex items-center gap-4 ml-auto">
         <UserButton/>
         <Link href="/sign-in">
-          <Button variant="primary">Login</Button>
+          <CustomButton variant="primary">Login</CustomButton>
         </Link>
       </div>
     </nav>

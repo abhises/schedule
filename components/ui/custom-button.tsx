@@ -1,9 +1,10 @@
+// components/ui/custom-button.tsx
 interface ButtonProps {
   variant?: "primary" | "secondary";
   children: React.ReactNode;
 }
 
-export default function Button({ variant = "primary", children }: ButtonProps) {
+export default function CustomButton({ variant = "primary", children }: ButtonProps) {
   const baseStyles =
     "px-6 py-2 rounded-lg font-medium text-white transition-all duration-300 cursor-pointer hover:-translate-y-2";
 
