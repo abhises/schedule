@@ -100,6 +100,7 @@ export default function HeroSectionOne() {
         </motion.div>
       </div>
     </div>
+    // just checking
   );
 }
 
