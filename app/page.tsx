@@ -86,7 +86,7 @@ const Navbar = () => {
         <div className="size-7 rounded-full bg-gradient-to-br from-red-500 to-blue-500" />
         <h1 className="text-base font-bold md:text-2xl">TeamPlan</h1>
       </div>
-
+{/* testing */}
       {/* RIGHT SIDE */}
       <div className="flex items-center gap-4 ml-auto">
         <UserButton/>
