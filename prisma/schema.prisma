@@ -1,5 +1,7 @@
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary" // ← add this line
+
 }
 
 datasource db {
@@ -18,10 +20,14 @@ enum ScheduleStatus {
 
 model User {
   id        Int             @id @default(autoincrement())
+  clerkId   String   @unique          // ← add this
   name      String
   email     String          @unique
   role      Role            @default(USER)
   createdAt DateTime        @default(now())
+  firstName String?
+  lastName  String?
+  imageUrl  String?
 
   schedules ScheduleEntry[] 
 }

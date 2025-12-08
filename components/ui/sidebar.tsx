@@ -511,16 +511,20 @@ function SidebarMenuButton({
   const Comp = asChild ? Slot : "button"
   const { isMobile, state } = useSidebar()
 
-  const button = (
-    <Comp
-      data-slot="sidebar-menu-button"
-      data-sidebar="menu-button"
-      data-size={size}
-      data-active={isActive}
-      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-      {...props}
-    />
-  )
+ const button = (
+  <Comp
+    data-slot="sidebar-menu-button"
+    data-sidebar="menu-button"
+    data-size={size}
+    data-active={isActive}
+    className={cn(
+      sidebarMenuButtonVariants({ variant, size }),
+      "bg-gradient-to-r from-red-500 to-red-400 text-white hover:from-red-600 hover:to-blue-600 hover:text-white",
+      className
+    )}
+    {...props}
+  />
+)
 
   if (!tooltip) {
     return button

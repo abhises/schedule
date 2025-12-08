@@ -1,8 +1,11 @@
+
+
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import { UserButton } from "@clerk/nextjs"
+import { syncUser } from "@/lib/syncUser";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default async  function Layout({ children }: { children: React.ReactNode }) {
+
   return (
     <>
     <SidebarProvider >
@@ -17,3 +20,5 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     </>
   )
 }
+
+// app/dashboard/layout.tsx
