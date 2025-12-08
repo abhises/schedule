@@ -1,15 +1,16 @@
-import { Calendar, Home, Clock} from "lucide-react"
+import {  Home, Clock, User} from "lucide-react"
 
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
+  // SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { UserButton } from "@clerk/nextjs"
 
 // Menu items.
 const items = [
@@ -19,21 +20,22 @@ const items = [
     icon: Home,
   },
   {
+    title: "Users",
+    url: "/dashboard/users",
+    icon: User ,
+  },
+  {
     title: "Schedule",
     url: "/dashboard/schedule",
     icon: Clock ,
   },
- {
-    title: "Calendar",
-    url: "/dashboard/calendar",
-    icon: Calendar,
-  },
+ 
   
 ]
 
 export function AppSidebar() {
   return (
-    <Sidebar>
+    <Sidebar >
       <SidebarContent>
         <SidebarGroup>
           {/* <SidebarGroupLabel>Create a schedule</SidebarGroupLabel> */}
@@ -54,6 +56,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+       <div className="flex items-end justify-items-end p-4">
+        <UserButton/>
+      </div>
     </Sidebar>
   )
 }

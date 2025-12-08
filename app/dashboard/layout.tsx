@@ -1,14 +1,19 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { UserButton } from "@clerk/nextjs"
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
+    <>
+    <SidebarProvider >
       <AppSidebar />
       <main>
-        <SidebarTrigger />
+        <SidebarTrigger  />
+
         {children}
       </main>
+     
     </SidebarProvider>
+    </>
   )
 }
