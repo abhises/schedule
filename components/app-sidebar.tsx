@@ -1,4 +1,5 @@
-import {  Home, Clock, User} from "lucide-react"
+import { Home, Clock, User } from "lucide-react";
+import Link from "next/link";
 
 import {
   Sidebar,
@@ -6,11 +7,12 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   // SidebarGroupLabel,
+  SidebarSeparator,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { UserButton } from "@clerk/nextjs"
+} from "@/components/ui/sidebar";
+import { UserButton } from "@clerk/nextjs";
 
 // Menu items.
 const items = [
@@ -22,43 +24,48 @@ const items = [
   {
     title: "Users",
     url: "/dashboard/users",
-    icon: User ,
+    icon: User,
   },
   {
     title: "Schedule",
     url: "/dashboard/schedule",
-    icon: Clock ,
+    icon: Clock,
   },
- 
-  
-]
+];
 
 export function AppSidebar() {
   return (
-    <Sidebar >
+    <Sidebar
+      className="
+    [&_[data-sidebar=sidebar]]:!bg-gradient-to-b 
+    [&_[data-sidebar=sidebar]]:from-red-500 
+    [&_[data-sidebar=sidebar]]:to-blue-500 
+  "
+    >
       <SidebarContent>
         <SidebarGroup>
           {/* <SidebarGroupLabel>Create a schedule</SidebarGroupLabel> */}
-          <br/>
+          <br />
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
+                  <SidebarSeparator />
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-       <div className="flex items-end justify-items-end p-4">
-        <UserButton/>
+      <div className="flex items-end justify-items-end p-4">
+        <UserButton />
       </div>
     </Sidebar>
-  )
+  );
 }
