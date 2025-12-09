@@ -28,6 +28,7 @@ model User {
   firstName String?
   lastName  String?
   imageUrl  String?
+  subscription  Boolean  @default(false)
 
   schedules ScheduleEntry[] 
 }
