@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import 'dotenv/config'  // only needed in scripts
+
 
 const globalForPrisma = global as unknown as {
     prisma: PrismaClient
@@ -7,6 +9,7 @@ const globalForPrisma = global as unknown as {
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
+
 })
 
 const prisma = globalForPrisma.prisma || new PrismaClient({

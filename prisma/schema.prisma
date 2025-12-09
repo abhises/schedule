@@ -1,7 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  engineType = "binary" // ← add this line
-
 }
 
 datasource db {
@@ -19,26 +17,47 @@ enum ScheduleStatus {
 }
 
 model User {
-  id        Int             @id @default(autoincrement())
-  clerkId   String   @unique          // ← add this
-  name      String
-  email     String          @unique
-  role      Role            @default(USER)
-  createdAt DateTime        @default(now())
-  firstName String?
-  lastName  String?
-  imageUrl  String?
-  subscription  Boolean  @default(false)
+  id            Int             @id @default(autoincrement())
+  clerkId       String          @unique  // ← Clerk user ID for syncing
+  
+  // Basic info
+  email         String          @unique
+  name          String?
+  firstName     String?
+  lastName      String?
+  imageUrl      String?
+  
+  // Account settings
+  role          Role            @default(USER)
+  subscription  Boolean         @default(false)
+  
+  // Metadata from Clerk
+  publicMetadata    Json        @default("{}")
+  privateMetadata   Json        @default("{}")
+  
+  // Timestamps
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  lastSyncedAt  DateTime        @default(now())  // ← Track last sync from Clerk
 
-  schedules ScheduleEntry[] 
+  // Relations
+  schedules     ScheduleEntry[]
+  
+  @@index([clerkId])
+  @@index([email])
+  @@index([createdAt])
 }
 
 model ScheduleBatch {
   id        Int             @id @default(autoincrement())
   status    ScheduleStatus  @default(DRAFTED)
   createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   entries   ScheduleEntry[]
+  
+  @@index([status])
+  @@index([createdAt])
 }
 
 model ScheduleEntry {
@@ -47,10 +66,16 @@ model ScheduleEntry {
   startTime  String
   endTime    String
   totalHours Int
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   userId     Int
-  user       User           @relation(fields: [userId], references: [id])
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   batchId    Int
-  batch      ScheduleBatch  @relation(fields: [batchId], references: [id])
+  batch      ScheduleBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([batchId])
+  @@index([date])
 }
