@@ -39,6 +39,7 @@ model User {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   lastSyncedAt  DateTime        @default(now())  // ← Track last sync from Clerk
+  isDeleted     Boolean  @default(false)
 
   // Relations
   schedules     ScheduleEntry[]
