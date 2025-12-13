@@ -47,9 +47,9 @@ export function AppSidebar() {
           {/* <SidebarGroupLabel>Create a schedule</SidebarGroupLabel> */}
           <br />
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu >
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className="hover:-translate-y-0.5">
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
                       <item.icon />
