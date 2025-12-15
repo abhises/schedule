@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 // import { syncUser } from "@/lib/syncUser";
 import { currentUser } from "@clerk/nextjs/server";
 import { capitalize } from "@/utils/string";
+import { UserButton } from "@clerk/nextjs";
 
 export default async function Layout({
   children,
@@ -25,9 +26,12 @@ export default async function Layout({
 
             {/* Welcome message on the right */}
             {user && (
-              <p className=" text-2xl text-red-200">
-                 {user.firstName} {user.lastName}!
-              </p>
+              <div className="flex items-center gap-4 text-2xl text-red-200">
+                <span >
+                  {user.firstName} {user.lastName}!
+                </span>
+                <UserButton />
+              </div>
             )}
           </div>
 
