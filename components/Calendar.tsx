@@ -1,60 +1,63 @@
 "use client";
 
-import { Calendar } from "react-big-calendar";
+import { Calendar, SlotInfo, Event } from "react-big-calendar";
 import { localizer } from "../utils/calendarLocalizer";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-type CalendarEvent = {
-  id: number;
-  user: string;
+export type CalendarEvent = {
+  id: number | string;
+  title: string;
   start: Date;
   end: Date;
+  user?: string;
 };
 
-type EventProps = {
-  event: CalendarEvent;
+type CalendarComponentProps = {
+  events: CalendarEvent[];
+  onSelectSlot?: (slot: SlotInfo) => void;
+  onSelectEvent?: (event: CalendarEvent) => void;
+  defaultView?: "month" | "week" | "day" | "agenda";
 };
 
-const CustomEvent = ({ event }: EventProps) => {
-  const start = event.start.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-  const end = event.end.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
+const CalendarComponent = ({
+  events,
+  onSelectSlot,
+  onSelectEvent,
+  defaultView = "month",
+}: CalendarComponentProps) => {
   return (
-    <div className="text-xs leading-tight">
-      <div className="font-semibold">{event.user}</div>
-      <div className="text-[11px]">
-        {start} – {end}
-      </div>
-      {/* <div>{event.title}</div> */}
-    </div>
-  );
-};
-const CalendarComponent = ({ events }: { events: CalendarEvent[] }) => {
-  return (
-    <div className="pl-4 h-screen w-6xl">
+    <div className="h-screen w-6xl p-4">
       <Calendar
         localizer={localizer}
         events={events}
         startAccessor="start"
         endAccessor="end"
-        defaultView="month"
-        dayPropGetter={() => {
-          return {
-            style: {
-              cursor: "pointer",
-              // backgroundColor: "#f3f4f6",
-            },
-          };
-        }}
+        defaultView={defaultView}
+        selectable={!!onSelectSlot}
+        onSelectSlot={onSelectSlot}
+        onSelectEvent={onSelectEvent}
+        dayPropGetter={() => ({
+          style: { cursor: "pointer" },
+        })}
         components={{
-          event: CustomEvent,
+          event: ({ event }: { event: CalendarEvent }) => (
+            <div className="text-xs">
+              {event.user && (
+                <div className="font-semibold">{event.user}</div>
+              )}
+              <div>
+                {event.start.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {" - "}
+                {event.end.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+            </div>
+          ),
         }}
       />
     </div>

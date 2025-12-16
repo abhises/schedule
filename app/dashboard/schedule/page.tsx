@@ -1,48 +1,77 @@
-import CalendarComponent from "@/components/Calendar"
+"use client";
 
+import { useState } from "react";
+import CalendarComponent, {
+  CalendarEvent,
+} from "@/components/Calendar";
 
-const events = [
-  {
-    id: 1,
-    user:"abhises",
-    start: new Date(2025, 11, 20, 10, 0), // Jan 10, 10:00
-    end: new Date(2025, 11, 20, 10, 0, 30),   // Jan 10, 11:00
-  },
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SlotInfo } from "react-big-calendar";
 
-  {
-    id: 2,
-    user:"amrit",
-    start: new Date(2025, 11, 20, 10, 0), // Jan 10, 10:00
-    end: new Date(2025, 11, 20, 10, 0, 30),   // Jan 10, 11:00
-  },
-   {
-    id: 3,
-    user:"amrit",
-    start: new Date(2025, 11, 20, 10, 0), // Jan 10, 10:00
-    end: new Date(2025, 11, 20, 10, 0, 30),   // Jan 10, 11:00
-  }, {
-    id: 4,
-    user:"amrit",
-    start: new Date(2025, 11, 20, 10, 0), // Jan 10, 10:00
-    end: new Date(2025, 11, 20, 10, 0, 30),   // Jan 10, 11:00
-  }, {
-    id: 5,
-    user:"amrit",
-    start: new Date(2025, 11, 20, 10, 0), // Jan 10, 10:00
-    end: new Date(2025, 11, 20, 10, 0, 30),   // Jan 10, 11:00
-  },
-  {
-    id: 6,
-    user:"john_doe",
-    start: new Date(2025, 11, 16, 13, 0),
-    end: new Date(2025, 11, 16, 14, 0),
-  },
-];
+const Page = () => {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [open, setOpen] = useState(false);
+  const [slot, setSlot] = useState<SlotInfo | null>(null);
+  const [user, setUser] = useState("");
 
-const page = () => {
+  const handleSelectSlot = (slotInfo: SlotInfo) => {
+    setSlot(slotInfo);
+    setOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!slot || !user) return;
+
+    setEvents((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        title: "Shift",
+        user,
+        start: slot.start,
+        end: slot.end,
+      },
+    ]);
+
+    setOpen(false);
+    setUser("");
+  };
+
   return (
-    <div><CalendarComponent events={events}/></div>
-  )
-}
+    <>
+      <CalendarComponent
+        events={events}
+        onSelectSlot={handleSelectSlot}
+      />
 
-export default page
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Schedule</DialogTitle>
+          </DialogHeader>
+
+          {slot && (
+            <div className="space-y-4">
+              <Input
+                placeholder="User"
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+              />
+
+              <Button onClick={handleSave}>Save</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
+export default Page;
