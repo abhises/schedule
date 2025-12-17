@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SlotInfo } from "react-big-calendar";
+import CustomButton from '@/components/ui/custom-button';
 
 const Page = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -65,7 +66,7 @@ const Page = () => {
                 onChange={(e) => setUser(e.target.value)}
               />
 
-              <Button onClick={handleSave}>Save</Button>
+              <CustomButton >Save</CustomButton>
             </div>
           )}
         </DialogContent>
