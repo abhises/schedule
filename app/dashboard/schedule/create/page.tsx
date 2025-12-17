@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, ChevronDown } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Trash2 } from "lucide-react";
 import { SlotInfo } from "react-big-calendar";
 
 import CalendarComponent, { CalendarEvent } from "@/components/Calendar";
@@ -31,7 +31,9 @@ import {
   CommandEmpty,
 } from "@/components/ui/command";
 
-/* ---------------- TYPES ---------------- */
+/* ------------------------------------------------------------------ */
+/* TYPES */
+/* ------------------------------------------------------------------ */
 
 type User = {
   id: number;
@@ -40,11 +42,28 @@ type User = {
   email: string;
 };
 
-/* ---------------- PAGE ---------------- */
+type DraftSchedule = {
+  id: string;
+  date: Date;
+  userIds: number[];
+  startTime: string;
+  endTime: string;
+};
+
+/* ------------------------------------------------------------------ */
+/* CONSTANTS */
+/* ------------------------------------------------------------------ */
+
+const USER_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444"];
+
+/* ------------------------------------------------------------------ */
+/* PAGE */
+/* ------------------------------------------------------------------ */
 
 export default function CreateSchedulePage() {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [drafts, setDrafts] = useState<DraftSchedule[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
 
   const [open, setOpen] = useState(false);
   const [slot, setSlot] = useState<SlotInfo | null>(null);
@@ -53,7 +72,12 @@ export default function CreateSchedulePage() {
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("14:00");
 
-  /* ---------------- FETCH USERS ---------------- */
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [weekdays, setWeekdays] = useState<number[]>([]);
+
+  /* ------------------------------------------------------------------ */
+  /* FETCH USERS */
+  /* ------------------------------------------------------------------ */
 
   useEffect(() => {
     fetch("/api/users")
@@ -62,172 +86,266 @@ export default function CreateSchedulePage() {
       .catch(console.error);
   }, []);
 
-  /* ---------------- SLOT CLICK ---------------- */
+  /* ------------------------------------------------------------------ */
+  /* HELPERS */
+  /* ------------------------------------------------------------------ */
 
-  const handleSelectSlot = (slotInfo: SlotInfo) => {
-    setSlot(slotInfo);
+  const getUserColor = (userId: number) =>
+    USER_COLORS[userId % USER_COLORS.length];
+
+  const hasDuplicate = (date: Date, userId: number) =>
+    drafts.some(
+      (d) =>
+        d.date.toDateString() === date.toDateString() &&
+        d.userIds.includes(userId)
+    );
+
+  const hasConflict = (userId: number, start: Date, end: Date) =>
+    events.some((e) => e.userId === userId && start < e.end && end > e.start);
+
+  const generateRecurringDates = (
+    baseDate: Date,
+    days: number[],
+    weeks = 4
+  ) => {
+    const result: Date[] = [];
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + i);
+      if (days.includes(d.getDay())) result.push(d);
+    }
+    return result;
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* SLOT CLICK */
+  /* ------------------------------------------------------------------ */
+
+  const handleSelectSlot = (info: SlotInfo) => {
+    setSlot(info);
     setSelectedUsers([]);
+    setIsRecurring(false);
+    setWeekdays([]);
     setOpen(true);
   };
 
-  /* ---------------- SAVE ---------------- */
+  /* ------------------------------------------------------------------ */
+  /* ADD DRAFT */
+  /* ------------------------------------------------------------------ */
 
-  const handleSave = async () => {
+  const handleAddDraft = () => {
     if (!slot || selectedUsers.length === 0) return;
 
-    await fetch("/api/schedules", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: slot.start,
+    const baseDate = new Date(slot.start);
+    baseDate.setHours(0, 0, 0, 0);
+
+    const dates = isRecurring
+      ? generateRecurringDates(baseDate, weekdays)
+      : [baseDate];
+
+    const newDrafts: DraftSchedule[] = [];
+    const newEvents: CalendarEvent[] = [];
+
+    dates.forEach((date) => {
+      const validUsers = selectedUsers.filter(
+        (uid) => !hasDuplicate(date, uid)
+      );
+
+      if (validUsers.length === 0) return;
+
+      const draftId = crypto.randomUUID();
+
+      newDrafts.push({
+        id: draftId,
+        date,
+        userIds: validUsers,
         startTime,
         endTime,
-        userIds: selectedUsers,
-      }),
-    });
+      });
 
-    // Optimistic UI update
-    setEvents((prev) => [
-      ...prev,
-      ...selectedUsers.map((userId) => {
-        const user = users.find((u) => u.id === userId);
-
-        const start = new Date(slot.start);
-        const end = new Date(slot.start);
+      validUsers.forEach((uid) => {
+        const user = users.find((u) => u.id === uid);
+        const start = new Date(date);
+        const end = new Date(date);
 
         const [sh, sm] = startTime.split(":");
         const [eh, em] = endTime.split(":");
 
-        start.setHours(Number(sh), Number(sm));
-        end.setHours(Number(eh), Number(em));
+        start.setHours(+sh, +sm);
+        end.setHours(+eh, +em);
 
-        return {
-          id: `${Date.now()}-${userId}`,
-          title: "Shift",
+        if (hasConflict(uid, start, end)) return;
+
+        newEvents.push({
+          id: `${draftId}-${uid}`,
+          title: "Draft",
+          userId: uid,
           user: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`,
           start,
           end,
-        };
-      }),
-    ]);
+        });
+      });
+    });
 
+    setDrafts((p) => [...p, ...newDrafts]);
+    setEvents((p) => [...p, ...newEvents]);
     setOpen(false);
   };
 
-  /* ---------------- UI ---------------- */
+  /* ------------------------------------------------------------------ */
+  /* REMOVE DRAFT */
+  /* ------------------------------------------------------------------ */
+
+  const removeDraft = (id: string) => {
+    setDrafts((p) => p.filter((d) => d.id !== id));
+    setEvents((p) => p.filter((e) => !e.id.toString().startsWith(id)));
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* DRAG / RESIZE */
+  /* ------------------------------------------------------------------ */
+
+  const updateEventTime = (eventId: string, start: Date, end: Date) => {
+    setEvents((p) =>
+      p.map((e) => (e.id === eventId ? { ...e, start, end } : e))
+    );
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* SAVE ALL */
+  /* ------------------------------------------------------------------ */
+
+  const handlePublishAll = async () => {
+    if (drafts.length === 0) return;
+
+    await fetch("/api/schedules/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ schedules: drafts }),
+    });
+
+    alert("Schedules published");
+    setDrafts([]);
+    setEvents([]);
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* UI */
+  /* ------------------------------------------------------------------ */
 
   return (
     <>
-      {/* -------- BACK -------- */}
-      <div className="p-4">
+      {/* HEADER */}
+      <div className="p-4 flex justify-between items-center">
         <Link href="/dashboard/schedule">
-          <CustomButton variant="primary">
+          <CustomButton>
             <span className="flex items-center gap-2">
               <ArrowLeft size={14} />
               Back
             </span>
           </CustomButton>
         </Link>
+
+        <CustomButton onClick={handlePublishAll}>
+          Publish All ({drafts.length})
+        </CustomButton>
       </div>
 
-      {/* -------- CALENDAR -------- */}
-      <CalendarComponent events={events} onSelectSlot={handleSelectSlot} />
+      {/* CALENDAR */}
+      <CalendarComponent
+        events={events}
+        onSelectSlot={handleSelectSlot}
+        onEventDrop={({ event, start, end }) =>
+          updateEventTime(event.id as string, start, end)
+        }
+        onEventResize={({ event, start, end }) =>
+          updateEventTime(event.id as string, start, end)
+        }
+        eventPropGetter={(event) => ({
+          style: {
+            backgroundColor: getUserColor(event.userId),
+            color: "white",
+          },
+        })}
+      />
 
-      {/* -------- MODAL -------- */}
+      {/* DRAFT LIST */}
+      <div className="p-4 space-y-2">
+        {drafts.map((d) => (
+          <div
+            key={d.id}
+            className="border rounded-md p-2 flex justify-between text-sm"
+          >
+            <span>
+              {d.date.toDateString()} · {d.startTime} – {d.endTime}
+            </span>
+            <button onClick={() => removeDraft(d.id)}>
+              <Trash2 size={14} className="text-red-500" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* MODAL */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Schedule</DialogTitle>
+            <DialogTitle>Add Schedule</DialogTitle>
           </DialogHeader>
 
-          {slot && (
-            <div className="space-y-5">
-              {/* Date */}
-              <div className="text-sm text-muted-foreground">
-                {slot.start.toDateString()}
-              </div>
+          <div className="space-y-4">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="w-full border px-3 py-2 flex justify-between">
+                  Select Users
+                  <ChevronDown size={14} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <Command>
+                  <CommandInput />
+                  <CommandGroup>
+                    {users.map((u) => {
+                      const selected = selectedUsers.includes(u.id);
+                      return (
+                        <CommandItem
+                          key={u.id}
+                          onSelect={() =>
+                            setSelectedUsers((p) =>
+                              selected
+                                ? p.filter((id) => id !== u.id)
+                                : [...p, u.id]
+                            )
+                          }
+                        >
+                          <Check
+                            size={14}
+                            className={selected ? "opacity-100" : "opacity-0"}
+                          />
+                          {u.firstName} {u.lastName}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
-              {/* USERS DROPDOWN */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Users</label>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="w-full flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      {selectedUsers.length > 0
-                        ? `${selectedUsers.length} user(s) selected`
-                        : "Select users"}
-                      <ChevronDown size={16} />
-                    </button>
-                  </PopoverTrigger>
-
-                  <PopoverContent className="p-0 w-[300px]">
-                    <Command>
-                      <CommandInput placeholder="Search users..." />
-                      <CommandEmpty>No users found</CommandEmpty>
-
-                      <CommandGroup>
-                        {users.map((u) => {
-                          const selected = selectedUsers.includes(u.id);
-
-                          return (
-                            <CommandItem
-                              key={u.id}
-                              onSelect={() =>
-                                setSelectedUsers((prev) =>
-                                  selected
-                                    ? prev.filter((id) => id !== u.id)
-                                    : [...prev, u.id]
-                                )
-                              }
-                              className="flex items-center gap-2"
-                            >
-                              <Check
-                                size={16}
-                                className={
-                                  selected ? "opacity-100" : "opacity-0"
-                                }
-                              />
-                              {u.firstName} {u.lastName}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* TIME */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm">Start Time</label>
-                  <Input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm">End Time</label>
-                  <Input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* SAVE */}
-              <CustomButton onClick={handleSave}>
-                Save Schedule
-              </CustomButton>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
             </div>
-          )}
+
+            <CustomButton onClick={handleAddDraft}>Add to Draft</CustomButton>
+          </div>
         </DialogContent>
       </Dialog>
     </>
