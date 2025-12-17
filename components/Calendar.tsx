@@ -32,7 +32,8 @@ const CalendarComponent = ({
         events={events}
         startAccessor="start"
         endAccessor="end"
-        defaultView={defaultView}
+        views={["month", "week", "day"]}
+        defaultView="month"
         selectable={!!onSelectSlot}
         onSelectSlot={onSelectSlot}
         onSelectEvent={onSelectEvent}
@@ -42,9 +43,7 @@ const CalendarComponent = ({
         components={{
           event: ({ event }: { event: CalendarEvent }) => (
             <div className="text-xs">
-              {event.user && (
-                <div className="font-semibold">{event.user}</div>
-              )}
+              {event.user && <div className="font-semibold">{event.user}</div>}
               <div>
                 {event.start.toLocaleTimeString([], {
                   hour: "2-digit",
