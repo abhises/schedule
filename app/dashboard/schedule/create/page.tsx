@@ -74,7 +74,10 @@ export default function CreateSchedulePage() {
 
   const [isRecurring, setIsRecurring] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>([]);
-
+const [range, setRange] = useState<{
+    start: Date | null
+    end: Date | null
+  }>({ start: null, end: null })
   /* ------------------------------------------------------------------ */
   /* FETCH USERS */
   /* ------------------------------------------------------------------ */
@@ -250,6 +253,7 @@ export default function CreateSchedulePage() {
           Publish All ({drafts.length})
         </CustomButton>
       </div>
+      {/* <ScheduleRangeSelector onApply={setRange} /> */}
 
       {/* CALENDAR */}
       <CalendarComponent

@@ -50,33 +50,42 @@ model User {
 }
 
 model ScheduleBatch {
-  id        Int             @id @default(autoincrement())
-  status    ScheduleStatus  @default(DRAFTED)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  id         Int             @id @default(autoincrement())
+  status     ScheduleStatus  @default(DRAFTED)
 
-  entries   ScheduleEntry[]
-  
+  startDate  DateTime
+  endDate    DateTime
+  totalDays  Int
+
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  entries    ScheduleEntry[]
+
   @@index([status])
-  @@index([createdAt])
+  @@index([startDate, endDate])
 }
 
+
 model ScheduleEntry {
-  id         Int            @id @default(autoincrement())
-  date       DateTime
+  id         Int        @id @default(autoincrement())
+
+  date       DateTime   // specific day
   startTime  String
   endTime    String
   totalHours Int
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
 
   userId     Int
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   batchId    Int
-  batch      ScheduleBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  
+  batch      ScheduleBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@unique([date, userId]) // 🔥 prevent duplicate date+user
+  @@index([date])
   @@index([userId])
   @@index([batchId])
-  @@index([date])
 }

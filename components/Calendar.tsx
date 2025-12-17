@@ -1,7 +1,6 @@
 "use client";
 
-import { Calendar, SlotInfo, Event,  EventPropGetter,
- } from "react-big-calendar";
+import { Calendar, SlotInfo, Event, EventPropGetter } from "react-big-calendar";
 import { localizer } from "../utils/calendarLocalizer";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -10,13 +9,14 @@ export type CalendarEvent = {
   title: string;
   start: Date;
   end: Date;
-  userId: number;        // ✅ REQUIRED
+  userId: number; // ✅ REQUIRED
   user?: string;
-
 };
 
 type CalendarComponentProps = {
   events: CalendarEvent[];
+  min?: Date;
+  max?: Date;
   onSelectSlot?: (slot: SlotInfo) => void;
   onSelectEvent?: (event: CalendarEvent) => void;
   defaultView?: "month" | "week" | "day" | "agenda";
@@ -50,6 +50,8 @@ const CalendarComponent = ({
   onEventDrop,
   onEventResize,
   eventPropGetter,
+  min,
+  max,  
   defaultView = "month",
 }: CalendarComponentProps) => {
   return (
@@ -61,6 +63,8 @@ const CalendarComponent = ({
         endAccessor="end"
         views={["month", "week", "day"]}
         defaultView="month"
+        min={min}
+        max={max}
         selectable={!!onSelectSlot}
         onSelectSlot={onSelectSlot}
         onSelectEvent={onSelectEvent}
