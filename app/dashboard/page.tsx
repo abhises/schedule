@@ -9,35 +9,35 @@ export default async function Dashboard() {
   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-10">
     
     {/* Box 1 */}
-    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center">
+    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
       <p className="text-gray-500 text-sm">Total Users</p>
       <p className="text-2xl font-bold text-blue-600">{users}</p>
     </div>
 
     {/* Box 2 */}
-    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center">
+    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
       <p className="text-gray-500 text-sm">Active Users</p>
       <p className="text-2xl font-bold text-green-600">0</p>
     </div>
 
     {/* Box 3 */}
-    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center">
+    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
       <p className="text-gray-500 text-sm">New Users</p>
       <p className="text-2xl font-bold text-purple-600">0</p>
     </div>
 
     {/* Row 2 */}
-    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center">
+    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
       <p className="text-gray-500 text-sm">Admins</p>
       <p className="text-2xl font-bold text-red-600">0</p>
     </div>
 
-    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center">
+    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
       <p className="text-gray-500 text-sm">Guests</p>
       <p className="text-2xl font-bold text-yellow-600">0</p>
     </div>
 
-    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center">
+    <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
       <p className="text-gray-500 text-sm">Banned Users</p>
       <p className="text-2xl font-bold text-gray-600">0</p>
     </div>
