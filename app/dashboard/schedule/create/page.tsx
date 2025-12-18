@@ -1,6 +1,7 @@
+// app/dashboard/schedule/create/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, ChevronDown, Trash2 } from "lucide-react";
 import { SlotInfo } from "react-big-calendar";
@@ -28,12 +29,7 @@ import {
   CommandInput,
   CommandItem,
   CommandGroup,
-  CommandEmpty,
 } from "@/components/ui/command";
-
-/* ------------------------------------------------------------------ */
-/* TYPES */
-/* ------------------------------------------------------------------ */
 
 type User = {
   id: number;
@@ -50,15 +46,7 @@ type DraftSchedule = {
   endTime: string;
 };
 
-/* ------------------------------------------------------------------ */
-/* CONSTANTS */
-/* ------------------------------------------------------------------ */
-
 const USER_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444"];
-
-/* ------------------------------------------------------------------ */
-/* PAGE */
-/* ------------------------------------------------------------------ */
 
 export default function CreateSchedulePage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -72,15 +60,8 @@ export default function CreateSchedulePage() {
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("14:00");
 
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [weekdays, setWeekdays] = useState<number[]>([]);
-const [range, setRange] = useState<{
-    start: Date | null
-    end: Date | null
-  }>({ start: null, end: null })
-  /* ------------------------------------------------------------------ */
-  /* FETCH USERS */
-  /* ------------------------------------------------------------------ */
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/users")
@@ -88,10 +69,6 @@ const [range, setRange] = useState<{
       .then(setUsers)
       .catch(console.error);
   }, []);
-
-  /* ------------------------------------------------------------------ */
-  /* HELPERS */
-  /* ------------------------------------------------------------------ */
 
   const getUserColor = (userId: number) =>
     USER_COLORS[userId % USER_COLORS.length];
@@ -106,107 +83,80 @@ const [range, setRange] = useState<{
   const hasConflict = (userId: number, start: Date, end: Date) =>
     events.some((e) => e.userId === userId && start < e.end && end > e.start);
 
-  const generateRecurringDates = (
-    baseDate: Date,
-    days: number[],
-    weeks = 4
-  ) => {
-    const result: Date[] = [];
-    for (let i = 0; i < weeks * 7; i++) {
-      const d = new Date(baseDate);
-      d.setDate(d.getDate() + i);
-      if (days.includes(d.getDay())) result.push(d);
-    }
-    return result;
-  };
-
-  /* ------------------------------------------------------------------ */
-  /* SLOT CLICK */
-  /* ------------------------------------------------------------------ */
-
   const handleSelectSlot = (info: SlotInfo) => {
     setSlot(info);
     setSelectedUsers([]);
-    setIsRecurring(false);
-    setWeekdays([]);
+    setError(null);
     setOpen(true);
   };
 
-  /* ------------------------------------------------------------------ */
-  /* ADD DRAFT */
-  /* ------------------------------------------------------------------ */
-
   const handleAddDraft = () => {
-    if (!slot || selectedUsers.length === 0) return;
+    if (!slot || selectedUsers.length === 0) {
+      setError("Please select at least one user");
+      return;
+    }
 
     const baseDate = new Date(slot.start);
     baseDate.setHours(0, 0, 0, 0);
 
-    const dates = isRecurring
-      ? generateRecurringDates(baseDate, weekdays)
-      : [baseDate];
-
     const newDrafts: DraftSchedule[] = [];
     const newEvents: CalendarEvent[] = [];
 
-    dates.forEach((date) => {
-      const validUsers = selectedUsers.filter(
-        (uid) => !hasDuplicate(date, uid)
-      );
+    const validUsers = selectedUsers.filter(
+      (uid) => !hasDuplicate(baseDate, uid)
+    );
 
-      if (validUsers.length === 0) return;
+    if (validUsers.length === 0) {
+      setError("All selected users already have a schedule for this date");
+      return;
+    }
 
-      const draftId = crypto.randomUUID();
+    const draftId = crypto.randomUUID();
 
-      newDrafts.push({
-        id: draftId,
-        date,
-        userIds: validUsers,
-        startTime,
-        endTime,
-      });
+    newDrafts.push({
+      id: draftId,
+      date: baseDate,
+      userIds: validUsers,
+      startTime,
+      endTime,
+    });
 
-      validUsers.forEach((uid) => {
-        const user = users.find((u) => u.id === uid);
-        const start = new Date(date);
-        const end = new Date(date);
+    validUsers.forEach((uid) => {
+      const user = users.find((u) => u.id === uid);
+      const start = new Date(baseDate);
+      const end = new Date(baseDate);
 
-        const [sh, sm] = startTime.split(":");
-        const [eh, em] = endTime.split(":");
+      const [sh, sm] = startTime.split(":");
+      const [eh, em] = endTime.split(":");
 
-        start.setHours(+sh, +sm);
-        end.setHours(+eh, +em);
+      start.setHours(+sh, +sm);
+      end.setHours(+eh, +em);
 
-        if (hasConflict(uid, start, end)) return;
+      if (hasConflict(uid, start, end)) {
+        setError(`Time conflict detected for ${user?.firstName}`);
+        return;
+      }
 
-        newEvents.push({
-          id: `${draftId}-${uid}`,
-          title: "Draft",
-          userId: uid,
-          user: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`,
-          start,
-          end,
-        });
+      newEvents.push({
+        id: `${draftId}-${uid}`,
+        title: "Draft",
+        userId: uid,
+        user: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`,
+        start,
+        end,
       });
     });
 
     setDrafts((p) => [...p, ...newDrafts]);
     setEvents((p) => [...p, ...newEvents]);
     setOpen(false);
+    setError(null);
   };
-
-  /* ------------------------------------------------------------------ */
-  /* REMOVE DRAFT */
-  /* ------------------------------------------------------------------ */
 
   const removeDraft = (id: string) => {
     setDrafts((p) => p.filter((d) => d.id !== id));
     setEvents((p) => p.filter((e) => !e.id.toString().startsWith(id)));
   };
-
-  /* ------------------------------------------------------------------ */
-  /* DRAG / RESIZE */
-  /* ------------------------------------------------------------------ */
 
   const updateEventTime = (eventId: string, start: Date, end: Date) => {
     setEvents((p) =>
@@ -214,31 +164,50 @@ const [range, setRange] = useState<{
     );
   };
 
-  /* ------------------------------------------------------------------ */
-  /* SAVE ALL */
-  /* ------------------------------------------------------------------ */
-
   const handlePublishAll = async () => {
-    if (drafts.length === 0) return;
+    if (drafts.length === 0) {
+      setError("No drafts to publish");
+      return;
+    }
 
-    await fetch("/api/schedules/batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ schedules: drafts }),
-    });
+    setIsLoading(true);
+    setError(null);
 
-    alert("Schedules published");
-    setDrafts([]);
-    setEvents([]);
+    try {
+      const entries = drafts.flatMap((draft) =>
+        draft.userIds.map((userId) => ({
+          date: draft.date.toISOString().split("T")[0],
+          startTime: draft.startTime,
+          endTime: draft.endTime,
+          userId,
+        }))
+      );
+
+      const response = await fetch("/api/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to publish schedules");
+      }
+
+      setDrafts([]);
+      setEvents([]);
+      alert("Schedules published successfully!");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to publish schedules"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  /* ------------------------------------------------------------------ */
-  /* UI */
-  /* ------------------------------------------------------------------ */
 
   return (
     <>
-      {/* HEADER */}
       <div className="p-4 flex justify-between items-center">
         <Link href="/dashboard/schedule">
           <CustomButton>
@@ -249,13 +218,11 @@ const [range, setRange] = useState<{
           </CustomButton>
         </Link>
 
-        <CustomButton onClick={handlePublishAll}>
-          Publish All ({drafts.length})
+        <CustomButton onClick={handlePublishAll} disabled={isLoading}>
+          {isLoading ? "Publishing..." : `Publish All (${drafts.length})`}
         </CustomButton>
       </div>
-      {/* <ScheduleRangeSelector onApply={setRange} /> */}
 
-      {/* CALENDAR */}
       <CalendarComponent
         events={events}
         onSelectSlot={handleSelectSlot}
@@ -273,7 +240,6 @@ const [range, setRange] = useState<{
         })}
       />
 
-      {/* DRAFT LIST */}
       <div className="p-4 space-y-2">
         {drafts.map((d) => (
           <div
@@ -281,7 +247,8 @@ const [range, setRange] = useState<{
             className="border rounded-md p-2 flex justify-between text-sm"
           >
             <span>
-              {d.date.toDateString()} · {d.startTime} – {d.endTime}
+              {d.date.toDateString()} · {d.startTime} – {d.endTime} ·{" "}
+              {d.userIds.length} user(s)
             </span>
             <button onClick={() => removeDraft(d.id)}>
               <Trash2 size={14} className="text-red-500" />
@@ -290,24 +257,29 @@ const [range, setRange] = useState<{
         ))}
       </div>
 
-      {/* MODAL */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Schedule</DialogTitle>
           </DialogHeader>
 
+          {error && (
+            <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-4">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="w-full border px-3 py-2 flex justify-between">
-                  Select Users
+                <button className="w-full border px-3 py-2 flex justify-between rounded">
+                  Select Users ({selectedUsers.length})
                   <ChevronDown size={14} />
                 </button>
               </PopoverTrigger>
               <PopoverContent>
                 <Command>
-                  <CommandInput />
+                  <CommandInput placeholder="Search users..." />
                   <CommandGroup>
                     {users.map((u) => {
                       const selected = selectedUsers.includes(u.id);
@@ -336,19 +308,27 @@ const [range, setRange] = useState<{
             </Popover>
 
             <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
-              <Input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              />
+              <div>
+                <label className="text-sm text-gray-600">Start Time</label>
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">End Time</label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </div>
             </div>
 
-            <CustomButton onClick={handleAddDraft}>Add to Draft</CustomButton>
+            <CustomButton onClick={handleAddDraft} disabled={isLoading}>
+              Add to Draft
+            </CustomButton>
           </div>
         </DialogContent>
       </Dialog>

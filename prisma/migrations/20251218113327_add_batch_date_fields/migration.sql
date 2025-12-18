@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "ScheduleEntry" ALTER COLUMN "totalHours" SET DATA TYPE DOUBLE PRECISION;

@@ -18,7 +18,7 @@ enum ScheduleStatus {
 
 model User {
   id            Int             @id @default(autoincrement())
-  clerkId       String          @unique  // ← Clerk user ID for syncing
+  clerkId       String          @unique
   
   // Basic info
   email         String          @unique
@@ -38,8 +38,8 @@ model User {
   // Timestamps
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
-  lastSyncedAt  DateTime        @default(now())  // ← Track last sync from Clerk
-  isDeleted     Boolean  @default(false)
+  lastSyncedAt  DateTime        @default(now())
+  isDeleted     Boolean         @default(false)
 
   // Relations
   schedules     ScheduleEntry[]
@@ -53,9 +53,9 @@ model ScheduleBatch {
   id         Int             @id @default(autoincrement())
   status     ScheduleStatus  @default(DRAFTED)
 
-  startDate  DateTime
-  endDate    DateTime
-  totalDays  Int
+  startDate  DateTime        // First day of the batch
+  endDate    DateTime        // Last day of the batch
+  totalDays  Int             // Total number of days in range
 
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
@@ -66,14 +66,13 @@ model ScheduleBatch {
   @@index([startDate, endDate])
 }
 
-
 model ScheduleEntry {
   id         Int        @id @default(autoincrement())
 
   date       DateTime   // specific day
-  startTime  String
-  endTime    String
-  totalHours Int
+  startTime  String     // "10:00"
+  endTime    String     // "14:00"
+  totalHours Float      // calculated hours
 
   userId     Int
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -84,7 +83,7 @@ model ScheduleEntry {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
-  @@unique([date, userId]) // 🔥 prevent duplicate date+user
+  @@unique([date, userId])
   @@index([date])
   @@index([userId])
   @@index([batchId])
