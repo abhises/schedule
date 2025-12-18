@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Check, ChevronDown, Trash2 } from "lucide-react";
 import { SlotInfo } from "react-big-calendar";
@@ -15,6 +16,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { Input } from "@/components/ui/input";
 
@@ -49,9 +60,11 @@ type DraftSchedule = {
 const USER_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444"];
 
 export default function CreateSchedulePage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [drafts, setDrafts] = useState<DraftSchedule[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [existingDates, setExistingDates] = useState<string[]>([]);
 
   const [open, setOpen] = useState(false);
   const [slot, setSlot] = useState<SlotInfo | null>(null);
@@ -62,13 +75,39 @@ export default function CreateSchedulePage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successDialog, setSuccessDialog] = useState(false);
 
   useEffect(() => {
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then(setUsers)
-      .catch(console.error);
+    fetchUsers();
+    checkExistingSchedules();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      setUsers(data);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+    }
+  };
+
+  const checkExistingSchedules = async () => {
+    try {
+      const response = await fetch("/api/schedules");
+      if (response.ok) {
+        const batches = await response.json();
+        const dates = batches.flatMap((batch: any) =>
+          batch.entries.map((entry: any) =>
+            new Date(entry.date).toDateString()
+          )
+        );
+        setExistingDates(dates);
+      }
+    } catch (err) {
+      console.error("Failed to check existing schedules:", err);
+    }
+  };
 
   const getUserColor = (userId: number) =>
     USER_COLORS[userId % USER_COLORS.length];
@@ -83,7 +122,36 @@ export default function CreateSchedulePage() {
   const hasConflict = (userId: number, start: Date, end: Date) =>
     events.some((e) => e.userId === userId && start < e.end && end > e.start);
 
+  const isDateDisabled = (date: Date): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Disable past dates (before today)
+    if (date < today) {
+      return true;
+    }
+
+    // Check if date already has schedule entries
+    if (existingDates.includes(date.toDateString())) {
+      return true;
+    }
+
+    return false;
+  };
+
   const handleSelectSlot = (info: SlotInfo) => {
+    const slotDate = new Date(info.start);
+    slotDate.setHours(0, 0, 0, 0);
+
+    if (isDateDisabled(slotDate)) {
+      if (slotDate < new Date()) {
+        setError("Cannot create schedule for past dates");
+      } else {
+        setError("A schedule already exists for this date. Edit or delete the existing schedule.");
+      }
+      return;
+    }
+
     setSlot(info);
     setSelectedUsers([]);
     setError(null);
@@ -98,6 +166,11 @@ export default function CreateSchedulePage() {
 
     const baseDate = new Date(slot.start);
     baseDate.setHours(0, 0, 0, 0);
+
+    if (isDateDisabled(baseDate)) {
+      setError("This date is no longer available");
+      return;
+    }
 
     const newDrafts: DraftSchedule[] = [];
     const newEvents: CalendarEvent[] = [];
@@ -126,11 +199,11 @@ export default function CreateSchedulePage() {
       const start = new Date(baseDate);
       const end = new Date(baseDate);
 
-      const [sh, sm] = startTime.split(":");
-      const [eh, em] = endTime.split(":");
+      const [sh, sm] = startTime.split(":").map(Number);
+      const [eh, em] = endTime.split(":").map(Number);
 
-      start.setHours(+sh, +sm);
-      end.setHours(+eh, +em);
+      start.setHours(sh, sm);
+      end.setHours(eh, em);
 
       if (hasConflict(uid, start, end)) {
         setError(`Time conflict detected for ${user?.firstName}`);
@@ -139,7 +212,7 @@ export default function CreateSchedulePage() {
 
       newEvents.push({
         id: `${draftId}-${uid}`,
-        title: "Draft",
+        title: `${user?.firstName} ${user?.lastName}`,
         userId: uid,
         user: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`,
         start,
@@ -196,7 +269,7 @@ export default function CreateSchedulePage() {
 
       setDrafts([]);
       setEvents([]);
-      alert("Schedules published successfully!");
+      setSuccessDialog(true);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to publish schedules"
@@ -219,7 +292,7 @@ export default function CreateSchedulePage() {
         </Link>
 
         <CustomButton onClick={handlePublishAll} disabled={isLoading}>
-          {isLoading ? "Publishing..." : `Publish All (${drafts.length})`}
+          {isLoading ? "Drafting..." : `Draft All (${drafts.length})`}
         </CustomButton>
       </div>
 
@@ -257,6 +330,7 @@ export default function CreateSchedulePage() {
         ))}
       </div>
 
+      {/* ADD SCHEDULE DIALOG */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
@@ -332,6 +406,41 @@ export default function CreateSchedulePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* SUCCESS DIALOG */}
+      <AlertDialog open={successDialog} onOpenChange={setSuccessDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="bg-green-200">Success!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your schedules have been published successfully. You'll be redirected to the schedules page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <CustomButton
+              onClick={() => {
+                setSuccessDialog(false);
+                router.push("/dashboard/schedule");
+              }}
+            >
+              Go to Schedules
+            </CustomButton>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ERROR DIALOG */}
+      <AlertDialog open={!!error && !open} onOpenChange={() => setError(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Error</AlertDialogTitle>
+            <AlertDialogDescription>{error}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel>Dismiss</AlertDialogCancel>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

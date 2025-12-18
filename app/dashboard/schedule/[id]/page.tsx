@@ -2,13 +2,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit2, Trash2, Download } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, Download, X } from "lucide-react";
 
 import CalendarComponent, { CalendarEvent } from "@/components/Calendar";
 import CustomButton from "@/components/ui/custom-button";
-import { Spinner } from "@/components/ui/spinner";
+import {Spinner} from "@/components/ui/spinner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import { Input } from "@/components/ui/input";
 
 type ScheduleEntry = {
   id: number;
@@ -40,12 +58,18 @@ const USER_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444"];
 
 export default function ScheduleDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
 
   const [batch, setBatch] = useState<ScheduleBatch | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<ScheduleEntry | null>(null);
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
 
   useEffect(() => {
     fetchBatchDetail();
@@ -120,7 +144,7 @@ export default function ScheduleDetailPage() {
   };
 
   const deleteBatch = async () => {
-    if (!batch || !confirm("Are you sure you want to delete this batch?")) {
+    if (!batch ) {
       return;
     }
 
@@ -240,7 +264,7 @@ export default function ScheduleDetailPage() {
           )}
 
           <button
-            onClick={deleteBatch}
+            onClick={() => setDeleteDialog(true)}
             className="p-2 hover:bg-red-100 rounded text-red-600"
           >
             <Trash2 size={18} />
@@ -302,6 +326,11 @@ export default function ScheduleDetailPage() {
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
                   Hours
                 </th>
+                {batch.status === "DRAFTED" && (
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -319,12 +348,97 @@ export default function ScheduleDetailPage() {
                   <td className="px-6 py-4 text-sm">{entry.startTime}</td>
                   <td className="px-6 py-4 text-sm">{entry.endTime}</td>
                   <td className="px-6 py-4 text-sm">{entry.totalHours}h</td>
+                  {batch.status === "DRAFTED" && (
+                    <td className="px-6 py-4 text-sm space-x-2 flex">
+                      <button
+                        onClick={() => {
+                          setEditingEntry(entry);
+                          setEditStartTime(entry.startTime);
+                          setEditEndTime(entry.endTime);
+                          setEditDialog(true);
+                        }}
+                        className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Batch</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this batch? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deleteBatch}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* EDIT TIME DIALOG */}
+      <Dialog open={editDialog} onOpenChange={setEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Time</DialogTitle>
+          </DialogHeader>
+
+          {editingEntry && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">
+                  {editingEntry.user.firstName} {editingEntry.user.lastName} -{" "}
+                  {new Date(editingEntry.date).toLocaleDateString()}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm text-gray-600">Start Time</label>
+                  <Input
+                    type="time"
+                    value={editStartTime}
+                    onChange={(e) => setEditStartTime(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">End Time</label>
+                  <Input
+                    type="time"
+                    value={editEndTime}
+                    onChange={(e) => setEditEndTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <CustomButton
+                onClick={() => {
+                  // Update logic here
+                  setEditDialog(false);
+                  // You can add update functionality later
+                }}
+              >
+                Save Changes
+              </CustomButton>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
