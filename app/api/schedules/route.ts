@@ -1,12 +1,12 @@
 // app/api/schedules/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import  prisma  from "@/lib/prisma";
+import prisma  from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
 type ScheduleEntryInput = {
-  date: string;
-  startTime: string;
-  endTime: string;
+  date: string; // ISO date string "2024-01-15"
+  startTime: string; // "10:00"
+  endTime: string; // "14:00"
   userId: number;
 };
 
@@ -73,10 +73,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Parse dates without timezone conversion (keep as local date)
     const dates = entries.map((e) => {
-      const d = new Date(e.date);
-      d.setUTCHours(0, 0, 0, 0);
-      return d;
+      const [year, month, day] = e.date.split("-").map(Number);
+      return new Date(year, month - 1, day);
     });
 
     const startDate = new Date(Math.min(...dates.map((d) => d.getTime())));
@@ -92,14 +92,12 @@ export async function POST(req: NextRequest) {
       const [startH, startM] = entry.startTime.split(":").map(Number);
       const [endH, endM] = entry.endTime.split(":").map(Number);
 
-      const entryDate = new Date(entry.date);
-      entryDate.setUTCHours(0, 0, 0, 0);
+      // Parse date without timezone conversion
+      const [year, month, day] = entry.date.split("-").map(Number);
+      const entryDate = new Date(year, month - 1, day);
 
-      const startDateTime = new Date(entryDate);
-      startDateTime.setUTCHours(startH, startM, 0, 0);
-
-      const endDateTime = new Date(entryDate);
-      endDateTime.setUTCHours(endH, endM, 0, 0);
+      const startDateTime = new Date(year, month - 1, day, startH, startM, 0, 0);
+      const endDateTime = new Date(year, month - 1, day, endH, endM, 0, 0);
 
       const totalHours =
         (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);

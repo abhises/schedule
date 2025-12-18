@@ -8,7 +8,7 @@ import { ArrowLeft, Edit2, Trash2, Download, X } from "lucide-react";
 
 import CalendarComponent, { CalendarEvent } from "@/components/Calendar";
 import CustomButton from "@/components/ui/custom-button";
-import {Spinner} from "@/components/ui/spinner";
+import { Spinner } from "@/components/ui/spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -137,14 +137,16 @@ export default function ScheduleDetailPage() {
 
       const updated = await response.json();
       setBatch(updated);
-      alert("Batch published successfully!");
+      window.location.href = "/dashboard/schedule";
+
+    //   alert("Batch published successfully!");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to publish batch");
     }
   };
 
   const deleteBatch = async () => {
-    if (!batch ) {
+    if (!batch) {
       return;
     }
 
@@ -265,7 +267,7 @@ export default function ScheduleDetailPage() {
 
           <button
             onClick={() => setDeleteDialog(true)}
-            className="p-2 hover:bg-red-100 rounded text-red-600"
+            className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-1"
           >
             <Trash2 size={18} />
           </button>
@@ -301,7 +303,9 @@ export default function ScheduleDetailPage() {
       {/* ENTRIES TABLE */}
       <div className="border rounded-lg overflow-hidden">
         <div className="bg-gray-50 border-b px-6 py-4">
-          <h2 className="text-lg font-semibold">Entries ({batch.entries.length})</h2>
+          <h2 className="text-lg font-semibold">
+            Entries ({batch.entries.length})
+          </h2>
         </div>
 
         <div className="overflow-x-auto">
@@ -376,14 +380,15 @@ export default function ScheduleDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Batch</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this batch? This action cannot be undone.
+              Are you sure you want to delete this batch? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex justify-end gap-2">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteBatch}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 cursor-pointer"
             >
               Delete
             </AlertDialogAction>

@@ -248,12 +248,20 @@ export default function CreateSchedulePage() {
 
     try {
       const entries = drafts.flatMap((draft) =>
-        draft.userIds.map((userId) => ({
-          date: draft.date.toISOString().split("T")[0],
-          startTime: draft.startTime,
-          endTime: draft.endTime,
-          userId,
-        }))
+        draft.userIds.map((userId) => {
+          // Convert date to YYYY-MM-DD format without timezone conversion
+          const year = draft.date.getFullYear();
+          const month = String(draft.date.getMonth() + 1).padStart(2, "0");
+          const day = String(draft.date.getDate()).padStart(2, "0");
+          const dateString = `${year}-${month}-${day}`;
+
+          return {
+            date: dateString,
+            startTime: draft.startTime,
+            endTime: draft.endTime,
+            userId,
+          };
+        })
       );
 
       const response = await fetch("/api/schedules", {
@@ -411,7 +419,7 @@ export default function CreateSchedulePage() {
       <AlertDialog open={successDialog} onOpenChange={setSuccessDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="bg-green-200">Success!</AlertDialogTitle>
+            <AlertDialogTitle>Success!</AlertDialogTitle>
             <AlertDialogDescription>
               Your schedules have been published successfully. You'll be redirected to the schedules page.
             </AlertDialogDescription>
