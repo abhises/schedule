@@ -77,6 +77,15 @@ export default function CreateSchedulePage() {
   const [error, setError] = useState<string | null>(null);
   const [successDialog, setSuccessDialog] = useState(false);
 
+  const selectedUserNames = selectedUsers
+    .map((id) => {
+      const user = users.find((u) => u.id === id);
+      return user
+        ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
+        : "";
+    })
+    .filter(Boolean);
+
   useEffect(() => {
     fetchUsers();
     checkExistingSchedules();
@@ -98,9 +107,7 @@ export default function CreateSchedulePage() {
       if (response.ok) {
         const batches = await response.json();
         const dates = batches.flatMap((batch: any) =>
-          batch.entries.map((entry: any) =>
-            new Date(entry.date).toDateString()
-          )
+          batch.entries.map((entry: any) => new Date(entry.date).toDateString())
         );
         setExistingDates(dates);
       }
@@ -147,7 +154,9 @@ export default function CreateSchedulePage() {
       if (slotDate < new Date()) {
         setError("Cannot create schedule for past dates");
       } else {
-        setError("A schedule already exists for this date. Edit or delete the existing schedule.");
+        setError(
+          "A schedule already exists for this date. Edit or delete the existing schedule."
+        );
       }
       return;
     }
@@ -331,7 +340,10 @@ export default function CreateSchedulePage() {
               {d.date.toDateString()} · {d.startTime} – {d.endTime} ·{" "}
               {d.userIds.length} user(s)
             </span>
-            <button onClick={() => removeDraft(d.id)} className="cursor-pointer hover:bg-red-100 hover:-translate-y-1">
+            <button
+              onClick={() => removeDraft(d.id)}
+              className="cursor-pointer hover:bg-red-100 hover:-translate-y-1"
+            >
               <Trash2 size={14} className="text-red-500" />
             </button>
           </div>
@@ -354,8 +366,12 @@ export default function CreateSchedulePage() {
           <div className="space-y-4">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="w-full border px-3 py-2 flex justify-between rounded">
-                  Select Users ({selectedUsers.length})
+                <button className="w-full border px-3 py-2 flex justify-between items-center rounded">
+                  <span className="truncate text-left">
+                    {selectedUserNames.length > 0
+                      ? selectedUserNames.join(", ")
+                      : "Select Users"}
+                  </span>
                   <ChevronDown size={14} />
                 </button>
               </PopoverTrigger>
@@ -421,7 +437,8 @@ export default function CreateSchedulePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Success!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your schedules have been published successfully. You'll be redirected to the schedules page.
+              Your schedules have been published successfully. You'll be
+              redirected to the schedules page.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex justify-end gap-2">

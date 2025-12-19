@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Input } from "@/components/ui/input";
+import { set } from "date-fns";
 
 type ScheduleEntry = {
   id: number;
@@ -75,6 +76,8 @@ export default function ScheduleDetailPage() {
   const [entryToDelete, setEntryToDelete] = useState<ScheduleEntry | null>(
     null
   );
+  const [updatingEntry, setUpdatingEntry] = useState(false);
+  const [deletingEntry, setDeletingEntry] = useState(false);
 
   useEffect(() => {
     fetchBatchDetail();
@@ -128,6 +131,7 @@ export default function ScheduleDetailPage() {
 
   const publishBatch = async () => {
     if (!batch) return;
+    setLoading(true);
 
     setPublishDialog(false); // close dialog immediately
 
@@ -152,7 +156,7 @@ export default function ScheduleDetailPage() {
     if (!batch) {
       return;
     }
-
+    setLoading(true);
     try {
       const response = await fetch(`/api/schedules/${batch.id}`, {
         method: "DELETE",
@@ -206,6 +210,8 @@ export default function ScheduleDetailPage() {
     if (!editingEntry || !batch) return;
 
     try {
+      setUpdatingEntry(true);
+
       const response = await fetch(
         `/api/schedules/${batch.id}/entries/${editingEntry.id}`,
         {
@@ -225,7 +231,7 @@ export default function ScheduleDetailPage() {
 
       const updatedEntry: ScheduleEntry = await response.json();
 
-      // ✅ Update entries in state
+      // ✅ Update entries
       setBatch((prev) => {
         if (!prev) return prev;
         return {
@@ -259,12 +265,17 @@ export default function ScheduleDetailPage() {
       setEditingEntry(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Update failed");
+    } finally {
+      setUpdatingEntry(false);
     }
   };
+
   const deleteEntry = async () => {
     if (!batch || !entryToDelete) return;
 
     try {
+      setDeletingEntry(true);
+      setLoading(true);
       const response = await fetch(
         `/api/schedules/${batch.id}/entries/${entryToDelete.id}`,
         { method: "DELETE" }
@@ -290,10 +301,14 @@ export default function ScheduleDetailPage() {
         prev.filter((e) => e.id !== String(entryToDelete.id))
       );
 
-      setDeleteEntryDialog(false);
       setEntryToDelete(null);
+      setDeleteEntryDialog(false);
+      setLoading(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeletingEntry(false);
+      setLoading(false);
     }
   };
 
@@ -569,7 +584,16 @@ export default function ScheduleDetailPage() {
                 </div>
               </div>
 
-              <CustomButton onClick={updateEntry}>Save Changes</CustomButton>
+              <CustomButton onClick={updateEntry} disabled={updatingEntry}>
+                {updatingEntry ? (
+                  <span className="flex items-center gap-2">
+                    <Spinner className="h-4 w-4" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save Changes"
+                )}
+              </CustomButton>
             </div>
           )}
         </DialogContent>
@@ -590,15 +614,26 @@ export default function ScheduleDetailPage() {
           </AlertDialogHeader>
 
           <div className="flex justify-end gap-2">
-            <AlertDialogCancel className="cursor-pointer">
+            <AlertDialogCancel
+              className="cursor-pointer"
+              disabled={deletingEntry}
+            >
               Cancel
             </AlertDialogCancel>
 
             <AlertDialogAction
               onClick={deleteEntry}
-              className="bg-red-600 hover:bg-red-700 cursor-pointer"
+              disabled={deletingEntry}
+              className="bg-red-600 hover:bg-red-700 cursor-pointer flex items-center gap-2"
             >
-              Delete
+              {deletingEntry ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </div>
         </AlertDialogContent>

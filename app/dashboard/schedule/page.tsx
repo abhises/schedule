@@ -14,6 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { set } from "date-fns";
+import { se } from "date-fns/locale";
 
 type ScheduleEntry = {
   id: number;
@@ -47,6 +49,7 @@ const page = () => {
   const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchBatches();
@@ -75,6 +78,9 @@ const page = () => {
     if (!selectedBatchId) return;
 
     try {
+      setDeleting(true);
+      setLoading(true);
+
       const response = await fetch(`/api/schedules/${selectedBatchId}`, {
         method: "DELETE",
       });
@@ -87,8 +93,12 @@ const page = () => {
 
       setDeleteDialog(false);
       setSelectedBatchId(null);
+      setLoading(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete batch");
+    } finally {
+      setDeleting(false);
+      setLoading(false);
     }
   };
 
@@ -231,9 +241,17 @@ const page = () => {
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={deleteBatch}
-                className="bg-red-600 hover:bg-red-700 cursor-pointer"
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-700 cursor-pointer flex items-center gap-2 "
               >
-                Delete
+                {deleting ? (
+                  <>
+                    <Spinner className="h-4 w-4" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </AlertDialogAction>
             </div>
           </AlertDialogContent>
