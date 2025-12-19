@@ -331,7 +331,7 @@ export default function CreateSchedulePage() {
               {d.date.toDateString()} · {d.startTime} – {d.endTime} ·{" "}
               {d.userIds.length} user(s)
             </span>
-            <button onClick={() => removeDraft(d.id)}>
+            <button onClick={() => removeDraft(d.id)} className="cursor-pointer hover:bg-red-100 hover:-translate-y-1">
               <Trash2 size={14} className="text-red-500" />
             </button>
           </div>

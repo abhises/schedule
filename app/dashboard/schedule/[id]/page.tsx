@@ -70,6 +70,11 @@ export default function ScheduleDetailPage() {
   const [editingEntry, setEditingEntry] = useState<ScheduleEntry | null>(null);
   const [editStartTime, setEditStartTime] = useState("");
   const [editEndTime, setEditEndTime] = useState("");
+  const [publishDialog, setPublishDialog] = useState(false);
+  const [deleteEntryDialog, setDeleteEntryDialog] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<ScheduleEntry | null>(
+    null
+  );
 
   useEffect(() => {
     fetchBatchDetail();
@@ -124,6 +129,8 @@ export default function ScheduleDetailPage() {
   const publishBatch = async () => {
     if (!batch) return;
 
+    setPublishDialog(false); // close dialog immediately
+
     try {
       const response = await fetch(`/api/schedules/${batch.id}`, {
         method: "PATCH",
@@ -131,15 +138,11 @@ export default function ScheduleDetailPage() {
         body: JSON.stringify({ status: "PUBLISHED" }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to publish batch");
-      }
+      if (!response.ok) throw new Error("Failed to publish batch");
 
       const updated = await response.json();
       setBatch(updated);
-      window.location.href = "/dashboard/schedule";
-
-    //   alert("Batch published successfully!");
+      router.push("/dashboard/schedule");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to publish batch");
     }
@@ -197,6 +200,101 @@ export default function ScheduleDetailPage() {
     a.download = `schedule-batch-${batch.id}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const updateEntry = async () => {
+    if (!editingEntry || !batch) return;
+
+    try {
+      const response = await fetch(
+        `/api/schedules/${batch.id}/entries/${editingEntry.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            startTime: editStartTime,
+            endTime: editEndTime,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to update entry");
+      }
+
+      const updatedEntry: ScheduleEntry = await response.json();
+
+      // ✅ Update entries in state
+      setBatch((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          entries: prev.entries.map((e) =>
+            e.id === updatedEntry.id ? updatedEntry : e
+          ),
+        };
+      });
+
+      // ✅ Update calendar events
+      setEvents((prev) =>
+        prev.map((event) => {
+          if (event.id !== String(updatedEntry.id)) return event;
+
+          const date = new Date(updatedEntry.date);
+          const [sh, sm] = updatedEntry.startTime.split(":").map(Number);
+          const [eh, em] = updatedEntry.endTime.split(":").map(Number);
+
+          const start = new Date(date);
+          start.setHours(sh, sm, 0, 0);
+
+          const end = new Date(date);
+          end.setHours(eh, em, 0, 0);
+
+          return { ...event, start, end };
+        })
+      );
+
+      setEditDialog(false);
+      setEditingEntry(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Update failed");
+    }
+  };
+  const deleteEntry = async () => {
+    if (!batch || !entryToDelete) return;
+
+    try {
+      const response = await fetch(
+        `/api/schedules/${batch.id}/entries/${entryToDelete.id}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to delete entry");
+      }
+
+      // Update batch entries
+      setBatch((prev) =>
+        prev
+          ? {
+              ...prev,
+              entries: prev.entries.filter((e) => e.id !== entryToDelete.id),
+            }
+          : prev
+      );
+
+      // Update calendar
+      setEvents((prev) =>
+        prev.filter((e) => e.id !== String(entryToDelete.id))
+      );
+
+      setDeleteEntryDialog(false);
+      setEntryToDelete(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    }
   };
 
   if (loading) {
@@ -257,7 +355,7 @@ export default function ScheduleDetailPage() {
           </CustomButton>
 
           {batch.status === "DRAFTED" && (
-            <CustomButton onClick={publishBatch}>
+            <CustomButton onClick={() => setPublishDialog(true)}>
               <span className="flex items-center gap-2">
                 <Edit2 size={14} />
                 Publish
@@ -361,9 +459,18 @@ export default function ScheduleDetailPage() {
                           setEditEndTime(entry.endTime);
                           setEditDialog(true);
                         }}
-                        className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                        className="p-1 hover:bg-blue-100 rounded text-blue-600 cursor-pointer hover:-translate-y-2"
                       >
                         <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEntryToDelete(entry);
+                          setDeleteEntryDialog(true);
+                        }}
+                        className="p-1 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                      >
+                        <Trash2 size={14} />
                       </button>
                     </td>
                   )}
@@ -385,12 +492,43 @@ export default function ScheduleDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex justify-end gap-2">
-            <AlertDialogCancel className="cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteBatch}
               className="bg-red-600 hover:bg-red-700 cursor-pointer"
             >
               Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* PUBLISH CONFIRMATION DIALOG */}
+      <AlertDialog open={publishDialog} onOpenChange={setPublishDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publish Batch</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to publish this batch?
+              <br />
+              <span className="text-sm text-gray-500">
+                Once published, entries can no longer be edited.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={publishBatch}
+              className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+            >
+              Publish
             </AlertDialogAction>
           </div>
         </AlertDialogContent>
@@ -431,19 +569,40 @@ export default function ScheduleDetailPage() {
                 </div>
               </div>
 
-              <CustomButton
-                onClick={() => {
-                  // Update logic here
-                  setEditDialog(false);
-                  // You can add update functionality later
-                }}
-              >
-                Save Changes
-              </CustomButton>
+              <CustomButton onClick={updateEntry}>Save Changes</CustomButton>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* DELETE ENTRY CONFIRMATION DIALOG */}
+      <AlertDialog open={deleteEntryDialog} onOpenChange={setDeleteEntryDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this entry?
+              <br />
+              <span className="text-sm text-gray-500">
+                This action cannot be undone.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={deleteEntry}
+              className="bg-red-600 hover:bg-red-700 cursor-pointer"
+            >
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
