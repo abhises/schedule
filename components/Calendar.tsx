@@ -51,7 +51,7 @@ const CalendarComponent = ({
   onEventResize,
   eventPropGetter,
   min,
-  max,  
+  max,
   defaultView = "month",
 }: CalendarComponentProps) => {
   return (
@@ -61,8 +61,8 @@ const CalendarComponent = ({
         events={events}
         startAccessor="start"
         endAccessor="end"
-        views={["month", "week", "day"]}
-        defaultView="month"
+        // views={["month", "week", "day"]}
+        defaultView={defaultView}
         min={min}
         max={max}
         selectable={!!onSelectSlot}
@@ -90,6 +90,7 @@ const CalendarComponent = ({
           ),
         }}
       />
+      
     </div>
   );
 };
