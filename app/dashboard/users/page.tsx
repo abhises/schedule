@@ -14,6 +14,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useUser } from "@clerk/nextjs";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type User = {
   id: number;
@@ -34,6 +44,9 @@ export default function Page() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true); // for fetch
   const [deleteLoading, setDeleteLoading] = useState(false); // full-screen spinner during delete
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // fetch users
   useEffect(() => {
@@ -64,27 +77,38 @@ export default function Page() {
       ?.role === "ADMIN";
 
   // delete item
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
+  const confirmDelete = (id: number) => {
+    setSelectedUserId(id);
+    setDeleteDialog(true);
+  };
 
+  const handleDelete = async () => {
+    if (!selectedUserId) return;
+
+    setDeleting(true);
     setDeleteLoading(true);
+
     try {
       const res = await fetch("/api/users", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id: selectedUserId }),
       });
 
       const data = await res.json();
+
       if (data.success) {
-        setUsers(users.filter((u) => u.id !== id));
+        setUsers((prev) => prev.filter((u) => u.id !== selectedUserId));
+        setDeleteDialog(false);
+        setSelectedUserId(null);
       } else {
-        alert(data.error || "Failed to delete item");
+        alert(data.error || "Failed to delete user");
       }
     } catch (err) {
       console.error(err);
-      alert("Error deleting item");
+      alert("Error deleting user");
     } finally {
+      setDeleting(false);
       setDeleteLoading(false);
     }
   };
@@ -141,18 +165,49 @@ export default function Page() {
             </TableCell>
             <TableCell className="text-right">
               {isAdmin && item.role !== "ADMIN" && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(item.id)}
+                <button
+                  onClick={() => confirmDelete(item.id)}
+                  className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
                 >
-                  Delete
-                </Button>
+                  <Trash2 size={16} />
+                </button>
               )}
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 cursor-pointer flex items-center gap-2"
+            >
+              {deleting ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </Table>
   );
 }
