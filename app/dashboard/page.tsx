@@ -8,6 +8,9 @@ export default async function Dashboard() {
   const bannedUsers = await prisma.user.count({
     where: { isDeleted: true },
   });
+  const admins = await prisma.user.count({
+    where: { role: "ADMIN" },
+  });
   return (
     <div>
      <div className="container mx-auto p-4">
@@ -35,7 +38,7 @@ export default async function Dashboard() {
     {/* Row 2 */}
     <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
       <p className="text-gray-500 text-sm">Admins</p>
-      <p className="text-2xl font-bold text-red-600">0</p>
+      <p className="text-2xl font-bold text-red-600">{admins}</p>
     </div>
 
     <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">

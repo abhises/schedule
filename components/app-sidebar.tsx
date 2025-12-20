@@ -53,6 +53,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => signOut({ redirectUrl: "/" })}
+                  className="hover:bg-red-600 focus:bg-red-600 cursor-pointer" 
                 >
                   <LogOut />
                   <span>Logout</span>
