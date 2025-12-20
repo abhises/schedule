@@ -2,18 +2,25 @@ import { Webhook } from "svix";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 
+// Ensure Node runtime (recommended for Prisma)
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * POST — Clerk Webhook
+ */
 export async function POST(req: Request) {
-  // 1️⃣ Read raw body (VERY IMPORTANT)
+  // 1️⃣ Read raw body (DO NOT use req.json())
   const payload = await req.text();
 
-  // 2️⃣ Await headers() (App Router requirement)
+  // 2️⃣ App Router headers() must be awaited
   const headerPayload = await headers();
 
   const svixId = headerPayload.get("svix-id");
   const svixTimestamp = headerPayload.get("svix-timestamp");
   const svixSignature = headerPayload.get("svix-signature");
 
-  // 3️⃣ Validate required headers
+  // 3️⃣ Validate Svix headers
   if (!svixId || !svixTimestamp || !svixSignature) {
     return new Response("Missing Svix headers", { status: 400 });
   }
@@ -30,7 +37,7 @@ export async function POST(req: Request) {
       "svix-signature": svixSignature,
     });
   } catch (err) {
-    console.error("Webhook verification failed:", err);
+    console.error("❌ Clerk webhook verification failed:", err);
     return new Response("Invalid signature", { status: 400 });
   }
 
@@ -98,4 +105,25 @@ export async function POST(req: Request) {
   }
 
   return new Response("OK", { status: 200 });
+}
+
+/**
+ * GET — Prevent 405 errors (Vercel / health checks)
+ */
+export async function GET() {
+  return new Response("OK", { status: 200 });
+}
+
+/**
+ * OPTIONS — Preflight / cache probes
+ */
+export async function OPTIONS() {
+  return new Response(null, { status: 200 });
+}
+
+/**
+ * HEAD — Avoid Method Not Allowed logs
+ */
+export async function HEAD() {
+  return new Response(null, { status: 200 });
 }
