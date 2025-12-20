@@ -1,14 +1,15 @@
 import { currentUser } from "@clerk/nextjs/server";
-import prisma  from "@/lib/prisma"; // or your Neon client
+import prisma from "@/lib/prisma";
 
 export type UserAccessStatus =
   | "ALLOWED"
   | "WAITLIST"
-  | "DELETED"
+  | "DELETED";
 
 export async function checkUserAccess(): Promise<UserAccessStatus> {
   const clerkUser = await currentUser();
 
+  // 🔐 Not logged in → waitlist
   if (!clerkUser) return "WAITLIST";
 
   const email = clerkUser.emailAddresses[0]?.emailAddress;
@@ -19,9 +20,15 @@ export async function checkUserAccess(): Promise<UserAccessStatus> {
     where: { email },
   });
 
+  // 👤 Not in DB yet → waitlist
   if (!dbUser) return "WAITLIST";
 
+  // 🗑️ Soft deleted
   if (dbUser.isDeleted) return "DELETED";
 
+  // ⏳ Pending users behave like waitlist
+  if (dbUser.role === "PENDING") return "WAITLIST";
+
+  // ✅ Allowed users
   return "ALLOWED";
 }

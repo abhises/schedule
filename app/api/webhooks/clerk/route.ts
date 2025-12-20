@@ -65,7 +65,7 @@ export async function POST(req: Request) {
         firstName: data.first_name ?? null,
         lastName: data.last_name ?? null,
         imageUrl: data.image_url ?? null,
-        role: "USER",
+        role: "PENDING",
         publicMetadata: data.public_metadata ?? {},
         privateMetadata: data.private_metadata ?? {},
         isDeleted: false,
