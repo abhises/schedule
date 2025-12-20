@@ -17,37 +17,35 @@ enum ScheduleStatus {
 }
 
 model User {
-  id            Int             @id @default(autoincrement())
-  clerkId       String          @unique
+  id            Int      @id @default(autoincrement())
+  clerkId       String   @unique
   
-  // Basic info
-  email         String          @unique
+  email         String?  @unique
   name          String?
   firstName     String?
   lastName      String?
   imageUrl      String?
   
-  // Account settings
-  role          Role            @default(USER)
-  subscription  Boolean         @default(false)
-  
-  // Metadata from Clerk
-  publicMetadata    Json        @default("{}")
-  privateMetadata   Json        @default("{}")
-  
-  // Timestamps
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  lastSyncedAt  DateTime        @default(now())
-  isDeleted     Boolean         @default(false)
+  role          Role     @default(USER)
+  subscription  Boolean  @default(false)
 
-  // Relations
+  publicMetadata  Json   @default("{}")
+  privateMetadata Json   @default("{}")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSyncedAt  DateTime @default(now())
+
+  isDeleted     Boolean  @default(false)
+  deletedAt     DateTime?
+
   schedules     ScheduleEntry[]
-  
+
   @@index([clerkId])
   @@index([email])
   @@index([createdAt])
 }
+
 
 model ScheduleBatch {
   id         Int             @id @default(autoincrement())
