@@ -2,14 +2,19 @@ import prisma from "@/lib/prisma";
 
 export default async function Dashboard() {
   const totalUsers = await prisma.user.count();
+
   const activeUsers = await prisma.user.count({
     where: { isDeleted: false },
   });
+
   const bannedUsers = await prisma.user.count({
     where: { isDeleted: true },
   });
   const admins = await prisma.user.count({
     where: { role: "ADMIN" },
+  });
+  const newUser = await prisma.user.count({
+    where: { role: "PENDING" },
   });
   return (
     <div>
@@ -32,7 +37,7 @@ export default async function Dashboard() {
           {/* Box 3 */}
           <div className="bg-white shadow-md rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:shadow-xl transition-shadow duration-300 hover:-translate-y-2">
             <p className="text-gray-500 text-sm">New Users</p>
-            <p className="text-2xl font-bold text-purple-600">0</p>
+            <p className="text-2xl font-bold text-purple-600">{newUser}</p>
           </div>
 
           {/* Row 2 */}

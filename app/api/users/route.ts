@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { Role } from "@prisma/client";
 
 export async function GET() {
   try {
@@ -22,6 +23,35 @@ export async function GET() {
   } catch (err) {
     console.error(err);
     return NextResponse.json([], { status: 500 }); // return empty array on error
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { id, role } = (await req.json()) as {
+      id: number;
+      role: Role;
+    };
+
+    if (!id || !role) {
+      return NextResponse.json(
+        { error: "User ID and role required" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: { role },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Failed to update role" },
+      { status: 500 }
+    );
   }
 }
 

@@ -47,6 +47,7 @@ export default function Page() {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const ROLES = ["PENDING", "USER", "ADMIN"] as const;
 
   // fetch users
   useEffect(() => {
@@ -112,6 +113,26 @@ export default function Page() {
       setDeleteLoading(false);
     }
   };
+  const updateRole = async (id: number, role: string) => {
+    try {
+      const res = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, role }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role } : u)));
+      } else {
+        alert(data.error || "Failed to update role");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating role");
+    }
+  };
 
   // Show full-screen spinner if fetching or deleting
   if (loading || deleteLoading) {
@@ -171,6 +192,27 @@ export default function Page() {
                 >
                   <Trash2 size={16} />
                 </button>
+              )}
+            </TableCell>
+            <TableCell>
+              {isAdmin ? (
+                <select
+                  value={item.role}
+                  onChange={(e) => updateRole(item.id, e.target.value)}
+                  className="border rounded px-2 py-1 text-sm"
+                  disabled={
+                    item.role === "ADMIN" &&
+                    item.email === user?.primaryEmailAddress?.emailAddress
+                  }
+                >
+                  {ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                item.role
               )}
             </TableCell>
           </TableRow>
