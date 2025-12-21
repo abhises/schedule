@@ -1,17 +1,16 @@
 // app/api/schedules/[id]/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { sendEmail } from "@/lib/mailer";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
 };
 
 // GET single batch by ID
-export async function GET(
-  req: NextRequest,
-  { params }: RouteParams
-) {
+export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
@@ -47,10 +46,7 @@ export async function GET(
     });
 
     if (!batch) {
-      return NextResponse.json(
-        { error: "Batch not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Batch not found" }, { status: 404 });
     }
 
     return NextResponse.json(batch);
@@ -64,10 +60,9 @@ export async function GET(
 }
 
 // PATCH - Update batch status (publish/draft)
-export async function PATCH(
-  req: NextRequest,
-  { params }: RouteParams
-) {
+
+// PATCH - Update batch status (publish/draft)
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
@@ -76,19 +71,8 @@ export async function PATCH(
 
     const { id } = await params;
     const batchId = parseInt(id, 10);
-    if (isNaN(batchId)) {
-      return NextResponse.json({ error: "Invalid batch ID" }, { status: 400 });
-    }
 
-    const body = await req.json();
-    const { status } = body;
-
-    if (!["DRAFTED", "PUBLISHED"].includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status" },
-        { status: 400 }
-      );
-    }
+    const { status } = await req.json();
 
     const batch = await prisma.scheduleBatch.update({
       where: { id: batchId },
@@ -98,31 +82,41 @@ export async function PATCH(
           include: {
             user: {
               select: {
-                id: true,
-                firstName: true,
-                lastName: true,
                 email: true,
+                firstName: true,
               },
             },
-          },
-          orderBy: {
-            date: "asc",
           },
         },
       },
     });
 
-    return NextResponse.json(batch);
-  } catch (error) {
-    console.error("Error updating batch:", error);
+    // 🔔 SEND EMAIL WHEN PUBLISHED
+    if (status === "PUBLISHED") {
+      const emails = batch.entries
+        .map((e) => e.user.email)
+        .filter((email): email is string => Boolean(email));
 
-    if (error instanceof Error && error.message.includes("not found")) {
-      return NextResponse.json(
-        { error: "Batch not found" },
-        { status: 404 }
+      await Promise.all(
+        [...new Set(emails)].map((email) =>
+          sendEmail(
+            email,
+            "📅 Your schedule has been published",
+            `
+          <p>Hello,</p>
+          <p>Your schedule has just been <b>published</b>.</p>
+          <p>Please log in to view your assigned slots.</p>
+          <br/>
+          <p>— Team</p>
+        `
+          )
+        )
       );
     }
 
+    return NextResponse.json(batch);
+  } catch (error) {
+    console.error("Error updating batch:", error);
     return NextResponse.json(
       { error: "Failed to update batch" },
       { status: 500 }
@@ -131,10 +125,7 @@ export async function PATCH(
 }
 
 // DELETE batch and all its entries
-export async function DELETE(
-  req: NextRequest,
-  { params }: RouteParams
-) {
+export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
@@ -153,10 +144,7 @@ export async function DELETE(
     });
 
     if (!batch) {
-      return NextResponse.json(
-        { error: "Batch not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Batch not found" }, { status: 404 });
     }
 
     // Delete batch (cascade will delete entries)

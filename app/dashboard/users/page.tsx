@@ -203,8 +203,9 @@ export default function Page() {
                     onChange={(e) => updateRole(item.id, e.target.value)}
                     className="border rounded px-2 py-1 text-sm"
                     disabled={
-                      item.role === "ADMIN" &&
-                      item.email === user?.primaryEmailAddress?.emailAddress
+                      item.role === "ADMIN"
+                      //  &&
+                      // item.email === user?.primaryEmailAddress?.emailAddress
                     }
                   >
                     {ROLES.map((role) => (
