@@ -10,28 +10,35 @@ const Page = () => {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await signOut();          // 🔐 clear Clerk session
-    // router.push("/sign-in");  // 🚀 redirect
+    await signOut();
+    // router.push("/sign-in");
   };
 
   return (
-    <div>
-      <div className="p-4">
-        <CustomButton onClick={handleLogout} >
-           <span className="flex items-center gap-2">
-              <ArrowLeft size={14} />
-              Back
-            </span>
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      {/* Top bar */}
+      <div className="p-3 sm:p-4">
+        <CustomButton onClick={handleLogout}>
+          <span className="flex items-center gap-2 text-sm">
+            <ArrowLeft size={14} />
+            Back
+          </span>
         </CustomButton>
       </div>
 
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-        <h1 className="text-2xl font-bold text-red-800">
-          Your account has been deleted.
-        </h1>
-        <p className="mt-4 text-gray-600">
-          We're sorry to see you go. If you have any questions, please contact your admin.
-        </p>
+      {/* Content */}
+      <div className="flex flex-1 items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-red-800">
+            Your account has been deleted
+          </h1>
+
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">
+            We're sorry to see you go.
+            <br className="hidden sm:block" />
+            If you have any questions, please contact your admin.
+          </p>
+        </div>
       </div>
     </div>
   );

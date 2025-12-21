@@ -11,7 +11,7 @@ const Page = () => {
 
   const handleLogout = async () => {
   await signOut();
-  router.replace("/sign-in"); // ⬅ replace, not push
+  // router.replace("/sign-in"); // ⬅ replace, not push
 };
 
 

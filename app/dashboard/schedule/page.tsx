@@ -14,8 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { set } from "date-fns";
-import { se } from "date-fns/locale";
 
 type ScheduleEntry = {
   id: number;
@@ -93,7 +91,6 @@ const page = () => {
 
       setDeleteDialog(false);
       setSelectedBatchId(null);
-      setLoading(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete batch");
     } finally {
@@ -112,17 +109,19 @@ const page = () => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex justify-center items-center  z-50">
+      <div className="fixed inset-0 flex justify-center items-center z-50">
         <Spinner className="h-12 w-12" />
       </div>
     );
   }
+
   return (
-    <div className="w-6xl">
+    <div className="max-w-7xl mx-auto px-3 sm:px-4">
       <div className="p-4">
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Schedules</h1>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold">Schedules</h1>
+
           <Link href="/dashboard/schedule/create">
             <CustomButton>
               <span className="flex items-center gap-2">
@@ -147,40 +146,42 @@ const page = () => {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto border rounded-lg">
+          <div className="overflow-x-auto border rounded-lg -mx-3 sm:mx-0">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
                     Batch ID
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
                     Date Range
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
                     Days
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
                     Entries
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
                     Actions
                   </th>
                 </tr>
               </thead>
+
               <tbody className="divide-y">
                 {batches.map((batch) => (
                   <tr key={batch.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium">
+                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium">
                       #{batch.id}
                     </td>
-                    <td className="px-6 py-4 text-sm">
+
+                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
                           batch.status === "PUBLISHED"
@@ -191,29 +192,37 @@ const page = () => {
                         {batch.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm">
+
+                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
                       {formatDate(batch.startDate)} to{" "}
                       {formatDate(batch.endDate)}
                     </td>
-                    <td className="px-6 py-4 text-sm">{batch.totalDays}</td>
-                    <td className="px-6 py-4 text-sm">
+
+                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
+                      {batch.totalDays}
+                    </td>
+
+                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
                       {batch.entries.length}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+
+                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm text-gray-600">
                       {formatDate(batch.createdAt)}
                     </td>
-                    <td className="px-6 py-4 text-sm space-x-2 flex">
+
+                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm flex gap-2 whitespace-nowrap">
                       <Link href={`/dashboard/schedule/${batch.id}`}>
-                        <button className="p-2 hover:bg-blue-100 rounded text-blue-600 cursor-pointer hover:-translate-y-2">
+                        <button className="p-2 hover:bg-blue-100 rounded text-blue-600 cursor-pointer">
                           <Eye size={16} />
                         </button>
                       </Link>
+
                       <button
                         onClick={() => {
                           setSelectedBatchId(batch.id);
                           setDeleteDialog(true);
                         }}
-                        className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                        className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -242,7 +251,7 @@ const page = () => {
               <AlertDialogAction
                 onClick={deleteBatch}
                 disabled={deleting}
-                className="bg-red-600 hover:bg-red-700 cursor-pointer flex items-center gap-2 "
+                className="bg-red-600 hover:bg-red-700 cursor-pointer flex items-center gap-2"
               >
                 {deleting ? (
                   <>
