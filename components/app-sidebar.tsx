@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Clock, User, LogOut, SidebarIcon } from "lucide-react";
+import { Home, Clock, User, LogOut, SidebarIcon, DollarSign } from "lucide-react";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
 import Image from "next/image";
@@ -20,6 +20,8 @@ const items = [
   { title: "Home", url: "/dashboard", icon: Home },
   { title: "Users", url: "/dashboard/users", icon: User },
   { title: "Schedule", url: "/dashboard/schedule", icon: Clock },
+  { title: "Pricing", url: "/dashboard/price", icon: DollarSign  },
+
 ];
 
 export function AppSidebar() {

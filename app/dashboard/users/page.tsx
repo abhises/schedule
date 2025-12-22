@@ -39,7 +39,8 @@ type User = {
 export default function Page() {
   const { user, isLoaded, isSignedIn } = useUser(); // 👈 Clerk item
 
-  console.log("Current user:", user);
+  // console.log("isSignedIn", isSignedIn);
+  // console.log("Current user:", user);
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true); // for fetch

@@ -521,7 +521,7 @@ function SidebarMenuButton({
       data-active={isActive}
       className={cn(
         sidebarMenuButtonVariants({ variant, size }),
-        "bg-gradient-to-r from-red-400 to-blue-200 text-white hover:from-red-600 hover:to-blue-600 hover:text-white hover:scale-102",
+        "bg-gradient-to-r from-red-400 to-blue-200 text-white hover:from-red-600 hover:to-blue-600 hover:text-white hover:scale-105",
         className
       )}
       {...props}

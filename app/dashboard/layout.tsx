@@ -4,6 +4,8 @@ import { currentUser } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { checkUserAccess } from "@/lib/auth/checkUserAccess";
 import { redirect } from "next/navigation";
+import { UsersProvider } from "@/context/UsersContext";
+
 
 export default async function Layout({
   children,
@@ -40,8 +42,7 @@ export default async function Layout({
             </div>
           )}
         </div>
-
-        {children}
+        <UsersProvider>{children}</UsersProvider>
       </main>
     </SidebarProvider>
   );

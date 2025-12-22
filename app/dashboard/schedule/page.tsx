@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@clerk/nextjs";
 
 type ScheduleEntry = {
   id: number;
@@ -48,6 +49,9 @@ const page = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { has } = useAuth();
+  const isPaidUser = has && has({ plan: "basic" });
+  // console.log("isPaidUser",isPaidUser)
 
   useEffect(() => {
     fetchBatches();
@@ -121,15 +125,20 @@ const page = () => {
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <h1 className="text-xl sm:text-2xl font-bold">Schedules</h1>
-
-          <Link href="/dashboard/schedule/create">
-            <CustomButton>
-              <span className="flex items-center gap-2">
-                <Plus size={16} />
-                Create Schedule
-              </span>
-            </CustomButton>
-          </Link>
+           
+            <Link
+              href={`${
+                isPaidUser ? "/dashboard/schedule/create" : "/dashboard/price"
+              }`}
+            >
+              <CustomButton>
+                <span className="flex items-center gap-2">
+                  <Plus size={16} />
+                  Create Schedule
+                </span>
+              </CustomButton>
+            </Link>
+          
         </div>
 
         {error && (
@@ -141,9 +150,15 @@ const page = () => {
         {batches.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 mb-4">No schedules created yet</p>
-            <Link href="/dashboard/schedule/create">
-              <CustomButton>Create Your First Schedule</CustomButton>
-            </Link>
+            
+              <Link
+                href={`${
+                  isPaidUser ? "/dashboard/schedule/create" : "/dashboard/price"
+                }`}
+              >
+                <CustomButton>Create Your First Schedule</CustomButton>
+              </Link>
+            
           </div>
         ) : (
           <div className="overflow-x-auto border rounded-lg -mx-3 sm:mx-0">

@@ -19,7 +19,7 @@ export default async function Dashboard() {
   return (
     <div>
       <span className="text-3xl font-bold block pl-4">User</span>
-      <div className="container mx-auto p-4">
+      <div className="mx-auto p-4">
         {/* Grid: 3 columns on md+, 1 column on small screens */}
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-10">
           {/* Box 1 */}
