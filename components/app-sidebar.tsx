@@ -1,8 +1,10 @@
 "use client";
 
-import { Home, Clock, User, LogOut } from "lucide-react";
+import { Home, Clock, User, LogOut, SidebarIcon } from "lucide-react";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
+import Image from "next/image";
+
 
 import {
   Sidebar,
@@ -28,11 +30,24 @@ export function AppSidebar() {
     <Sidebar
       className="
         [&_[data-sidebar=sidebar]]:!bg-gradient-to-b
-        [&_[data-sidebar=sidebar]]:from-red-500
+        [&_[data-sidebar=sidebar]]:from-red-200
         [&_[data-sidebar=sidebar]]:to-blue-500
       "
     >
       <SidebarContent>
+         <div className="flex items-center justify-center py-6">
+          <Link href="/dashboard">
+            <Image
+              src="/teamplanlogo.png"
+              alt="TeamPlan Logo"
+              width={600}
+              height={600}
+              priority
+              className="p-2 rounded-full hover:scale-120 "
+            />
+          </Link>
+        </div>
+        
         <SidebarGroup>
           <br />
           <SidebarGroupContent>
@@ -53,7 +68,7 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => signOut({ redirectUrl: "/" })}
-                  className="hover:bg-red-600 focus:bg-red-600 cursor-pointer" 
+                  className="cursor-pointer" 
                 >
                   <LogOut />
                   <span>Logout</span>

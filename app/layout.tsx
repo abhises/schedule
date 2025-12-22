@@ -18,6 +18,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Team plan",
   description: "It help to plan the team and also help to track the hours and salary",
+  icons: {
+    icon: "/logo.png",
+  
+  },
 };
 
 export default function RootLayout({

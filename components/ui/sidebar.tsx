@@ -181,29 +181,31 @@ function Sidebar({
   }
 
   if (isMobile) {
-  return (
-    <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-      <SheetContent
-        data-sidebar="sidebar"
-        data-slot="sidebar"
-        data-mobile="true"
-        className={cn(
-          "w-(--sidebar-width) p-0 [&>button]:hidden",
-          "bg-gradient-to-b from-red-500 to-blue-500", // <-- apply gradient directly
-          "text-sidebar-foreground"
-        )}
-        style={{ "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties}
-        side={side}
-      >
-        <SheetHeader className="sr-only">
-          <SheetTitle>Sidebar</SheetTitle>
-          <SheetDescription>Displays the mobile sidebar.</SheetDescription>
-        </SheetHeader>
-        <div className="flex h-full w-full flex-col">{children}</div>
-      </SheetContent>
-    </Sheet>
-  );
-}
+    return (
+      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <SheetContent
+          data-sidebar="sidebar"
+          data-slot="sidebar"
+          data-mobile="true"
+          className={cn(
+            "w-(--sidebar-width) p-0 [&>button]:hidden",
+            "bg-gradient-to-b from-red-200 to-blue-500", // <-- apply gradient directly
+            "text-sidebar-foreground"
+          )}
+          style={
+            { "--sidebar-width": SIDEBAR_WIDTH_MOBILE } as React.CSSProperties
+          }
+          side={side}
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Sidebar</SheetTitle>
+            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+          </SheetHeader>
+          <div className="flex h-full w-full flex-col">{children}</div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <div
@@ -519,7 +521,7 @@ function SidebarMenuButton({
       data-active={isActive}
       className={cn(
         sidebarMenuButtonVariants({ variant, size }),
-        "bg-gradient-to-r from-red-500 to-red-400 text-white hover:from-red-600 hover:to-blue-600 hover:text-white",
+        "bg-gradient-to-r from-red-400 to-blue-200 text-white hover:from-red-600 hover:to-blue-600 hover:text-white hover:scale-102",
         className
       )}
       {...props}
