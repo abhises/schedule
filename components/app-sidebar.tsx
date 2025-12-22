@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
 import Image from "next/image";
 
-
 import {
   Sidebar,
   SidebarContent,
@@ -35,7 +34,7 @@ export function AppSidebar() {
       "
     >
       <SidebarContent>
-         <div className="flex items-center justify-center py-6">
+        <div className="flex items-center justify-center py-6">
           <Link href="/dashboard">
             <Image
               src="/teamplanlogo.png"
@@ -47,7 +46,7 @@ export function AppSidebar() {
             />
           </Link>
         </div>
-        
+
         <SidebarGroup>
           <br />
           <SidebarGroupContent>
@@ -56,8 +55,18 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="ml-1" />
+                      <span
+                        className="
+        transition-opacity duration-200
+        group-data-[collapsible=icon]:opacity-0
+        group-data-[collapsible=icon]:w-0
+        group-data-[collapsible=icon]:overflow-hidden
+        group-data-[collapsible=icon]:pointer-events-none
+      "
+                      >
+                        {item.title}
+                      </span>{" "}
                     </Link>
                   </SidebarMenuButton>
                   <SidebarSeparator />
@@ -68,10 +77,20 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => signOut({ redirectUrl: "/" })}
-                  className="cursor-pointer" 
+                  className="cursor-pointer"
                 >
-                  <LogOut />
-                  <span>Logout</span>
+                  <LogOut  className="ml-1"/>
+                  <span
+                    className="
+        transition-opacity duration-200
+        group-data-[collapsible=icon]:opacity-0
+        group-data-[collapsible=icon]:w-0
+        group-data-[collapsible=icon]:overflow-hidden
+        group-data-[collapsible=icon]:pointer-events-none
+      "
+                  >
+                    Logout
+                  </span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
