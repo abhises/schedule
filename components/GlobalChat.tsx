@@ -19,6 +19,8 @@ type ChatMessage = {
 
 export default function GlobalChat() {
   const { userId: myClerkId, isLoaded } = useAuth();
+  const notificationSound = useRef<HTMLAudioElement | null>(null);
+  const [sending, setSending] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
@@ -52,8 +54,16 @@ export default function GlobalChat() {
         return [...prev, message];
       });
 
-      if (!open && message.user.clerkId !== myClerkId) {
-        setUnread((u) => u + 1);
+      const isOtherUser = message.user.clerkId !== myClerkId;
+
+      if (isOtherUser) {
+        // 🔔 play sound
+        notificationSound.current?.play().catch(() => {});
+
+        // 🔴 increase unread only if chat is closed
+        if (!open) {
+          setUnread((u) => u + 1);
+        }
       }
     };
 
@@ -69,24 +79,30 @@ export default function GlobalChat() {
   // Send message
   // -------------------------
   async function sendMessage() {
-    if (!text.trim()) return;
+    if (!text.trim() || sending) return;
 
-    await fetch("/api/chat/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: text }),
-    });
+    try {
+      setSending(true);
 
-    setText("");
+      await fetch("/api/chat/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+
+      setText(""); // UI updates via Pusher
+    } catch (err) {
+      console.error("Send failed", err);
+    } finally {
+      setSending(false);
+    }
   }
 
   // -------------------------
   // Time ago
   // -------------------------
   function timeAgo(date: string) {
-    const seconds = Math.floor(
-      (Date.now() - new Date(date).getTime()) / 1000
-    );
+    const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
     if (seconds < 10) return "just now";
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
@@ -95,6 +111,10 @@ export default function GlobalChat() {
     if (hours < 24) return `${hours} hr ago`;
     return `${Math.floor(hours / 24)} day ago`;
   }
+
+  useEffect(() => {
+    notificationSound.current = new Audio("/notification.mp3");
+  }, []);
 
   // -------------------------
   // UI
@@ -201,17 +221,29 @@ export default function GlobalChat() {
         <div className="border-t px-3 py-2 bg-white">
           <div className="flex items-center gap-2">
             <input
-              className="flex-1 rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={sending}
+              className="flex-1 rounded-full border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Type a message…"
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             />
+
             <button
               onClick={sendMessage}
-              className="rounded-full bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 transition cursor-pointer"
+              disabled={sending}
+              className={`rounded-full bg-blue-600 text-white px-4 py-2 text-sm transition cursor-pointer
+    ${sending ? "opacity-70 cursor-not-allowed" : "hover:bg-blue-700"}
+  `}
             >
-              Send
+              {sending ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Sending
+                </span>
+              ) : (
+                "Send"
+              )}
             </button>
           </div>
         </div>
