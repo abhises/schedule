@@ -120,7 +120,7 @@ const page = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4">
+    <div className="max-w-full mx-auto px-3 sm:px-4">
       {/* <GlobalChat/> */}
       <div className="p-4">
         {/* HEADER */}

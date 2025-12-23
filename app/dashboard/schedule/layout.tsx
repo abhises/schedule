@@ -3,8 +3,9 @@ import { ReactNode } from "react";
 
 export default function ScheduleLayout({ children }: { children: ReactNode }) {
   return (
-    <section>
+   <div className="mx-auto">
+
       {children}
-    </section>
+    </div>
   );
 }
