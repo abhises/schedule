@@ -5,7 +5,7 @@ import { UserButton } from "@clerk/nextjs";
 import { checkUserAccess } from "@/lib/auth/checkUserAccess";
 import { redirect } from "next/navigation";
 import { UsersProvider } from "@/context/UsersContext";
-
+import GlobalChat from "@/components/GlobalChat";
 
 export default async function Layout({
   children,
@@ -43,6 +43,7 @@ export default async function Layout({
           )}
         </div>
         <UsersProvider>{children}</UsersProvider>
+        <GlobalChat />
       </main>
     </SidebarProvider>
   );

@@ -121,6 +121,7 @@ const page = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4">
+      {/* <GlobalChat/> */}
       <div className="p-4">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
