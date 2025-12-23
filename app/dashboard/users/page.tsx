@@ -145,13 +145,13 @@ export default function Page() {
   }
 
   return (
-    <div className="m-4">
+    <div className="m-4 overflow-x-auto">
       <Table>
         <TableCaption>All team members</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead className="w-[100px]">Id</TableHead>
-            <TableHead>ClerkId</TableHead>
+            <TableHead >ClerkId</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>First Name</TableHead>
             <TableHead>Last Name</TableHead>
@@ -166,7 +166,7 @@ export default function Page() {
           {users.map((item) => (
             <TableRow key={item.id}>
               <TableCell className="font-medium">{item.id}</TableCell>
-              <TableCell>{item.clerkId}</TableCell>
+              <TableCell className="hidden md:table-cell">{item.clerkId}</TableCell>
               <TableCell>{item.email}</TableCell>
               <TableCell>{item.firstName}</TableCell>
               <TableCell>{item.lastName}</TableCell>
