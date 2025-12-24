@@ -55,7 +55,7 @@ const CalendarComponent = ({
   defaultView = "month",
 }: CalendarComponentProps) => {
   return (
-    <div className="h-screen w-6xl p-4">
+    <div className="h-[70vh] sm:h-[80vh] w-full min-w-[320px]">
       <Calendar
         localizer={localizer}
         events={events}

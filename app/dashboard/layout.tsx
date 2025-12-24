@@ -43,7 +43,9 @@ export default async function Layout({
           )}
         </div>
         <UsersProvider>{children}</UsersProvider>
-        <GlobalChat />
+        <div className="relative z-50">
+          <GlobalChat />
+        </div>
       </main>
     </SidebarProvider>
   );

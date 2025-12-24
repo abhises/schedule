@@ -23,12 +23,6 @@ type ScheduleEntry = {
   endTime: string;
   totalHours: number;
   userId: number;
-  user: {
-    id: number;
-    firstName: string | null;
-    lastName: string | null;
-    email: string;
-  };
 };
 
 type ScheduleBatch = {
@@ -38,20 +32,19 @@ type ScheduleBatch = {
   endDate: string;
   totalDays: number;
   createdAt: string;
-  updatedAt: string;
   entries: ScheduleEntry[];
 };
 
-const page = () => {
+const Page = () => {
   const [batches, setBatches] = useState<ScheduleBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+
   const { has } = useAuth();
   const isPaidUser = has && has({ plan: "basic" });
-  // console.log("isPaidUser",isPaidUser)
 
   useEffect(() => {
     fetchBatches();
@@ -60,17 +53,13 @@ const page = () => {
   const fetchBatches = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/schedules");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch batches");
-      }
-
-      const data = await response.json();
-      setBatches(data);
-      setError(null);
+      const res = await fetch("/api/schedules");
+      if (!res.ok) throw new Error("Failed to fetch schedules");
+      setBatches(await res.json());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch batches");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch schedules"
+      );
     } finally {
       setLoading(false);
     }
@@ -81,35 +70,23 @@ const page = () => {
 
     try {
       setDeleting(true);
-      setLoading(true);
-
-      const response = await fetch(`/api/schedules/${selectedBatchId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete batch");
-      }
-
+      await fetch(`/api/schedules/${selectedBatchId}`, { method: "DELETE" });
       setBatches((prev) => prev.filter((b) => b.id !== selectedBatchId));
-
       setDeleteDialog(false);
       setSelectedBatchId(null);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete batch");
+    } catch {
+      alert("Failed to delete batch");
     } finally {
       setDeleting(false);
-      setLoading(false);
     }
   };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-US", {
+  const formatDate = (date: string) =>
+    new Date(date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-  };
 
   if (loading) {
     return (
@@ -121,25 +98,23 @@ const page = () => {
 
   return (
     <div className="max-w-full mx-auto px-3 sm:px-4">
-      {/* <GlobalChat/> */}
       <div className="p-4">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
           <h1 className="text-xl sm:text-2xl font-bold">Schedules</h1>
-           
-            <Link
-              href={`${
-                isPaidUser ? "/dashboard/schedule/create" : "/dashboard/price"
-              }`}
-            >
-              <CustomButton>
-                <span className="flex items-center gap-2">
-                  <Plus size={16} />
-                  Create Schedule
-                </span>
-              </CustomButton>
-            </Link>
-          
+
+          <Link
+            href={
+              isPaidUser ? "/dashboard/schedule/create" : "/dashboard/price"
+            }
+          >
+            <CustomButton>
+              <span className="flex items-center gap-2">
+                <Plus size={16} />
+                Create Schedule
+              </span>
+            </CustomButton>
+          </Link>
         </div>
 
         {error && (
@@ -148,108 +123,127 @@ const page = () => {
           </div>
         )}
 
-        {batches.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">No schedules created yet</p>
-            
-              <Link
-                href={`${
-                  isPaidUser ? "/dashboard/schedule/create" : "/dashboard/price"
-                }`}
-              >
-                <CustomButton>Create Your First Schedule</CustomButton>
-              </Link>
-            
-          </div>
-        ) : (
-          <div className="overflow-x-auto border rounded-lg -mx-3 sm:mx-0">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
-                    Batch ID
+        {/* ================= DESKTOP TABLE ================= */}
+        <div className="hidden sm:block border rounded-lg overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {[
+                  "#",
+                  "Status",
+                  "Date Range",
+                  "Days",
+                  "Entries",
+                  "Created",
+                  "Actions",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-6 py-3 text-left text-sm font-medium text-gray-700"
+                  >
+                    {h}
                   </th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
-                    Status
-                  </th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
-                    Date Range
-                  </th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
-                    Days
-                  </th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
-                    Entries
-                  </th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
-                    Created
-                  </th>
-                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y">
-                {batches.map((batch) => (
-                  <tr key={batch.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm font-medium">
-                      #{batch.id}
-                    </td>
-
-                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          batch.status === "PUBLISHED"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {batch.status}
-                      </span>
-                    </td>
-
-                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
-                      {formatDate(batch.startDate)} to{" "}
-                      {formatDate(batch.endDate)}
-                    </td>
-
-                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
-                      {batch.totalDays}
-                    </td>
-
-                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm">
-                      {batch.entries.length}
-                    </td>
-
-                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm text-gray-600">
-                      {formatDate(batch.createdAt)}
-                    </td>
-
-                    <td className="px-3 sm:px-6 py-3 text-xs sm:text-sm flex gap-2 whitespace-nowrap">
-                      <Link href={`/dashboard/schedule/${batch.id}`}>
-                        <button className="p-2 hover:bg-blue-100 rounded text-blue-600 cursor-pointer">
-                          <Eye size={16} />
-                        </button>
-                      </Link>
-
-                      <button
-                        onClick={() => {
-                          setSelectedBatchId(batch.id);
-                          setDeleteDialog(true);
-                        }}
-                        className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </tr>
+            </thead>
 
+            <tbody className="divide-y">
+              {batches.map((batch, index) => (
+                <tr key={batch.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 text-sm">#{index + 1}</td>
+                  <td className="px-6 py-3 text-sm">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        batch.status === "PUBLISHED"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {batch.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-sm">
+                    {formatDate(batch.startDate)} – {formatDate(batch.endDate)}
+                  </td>
+                  <td className="px-6 py-3 text-sm">{batch.totalDays}</td>
+                  <td className="px-6 py-3 text-sm">{batch.entries.length}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600">
+                    {formatDate(batch.createdAt)}
+                  </td>
+                  <td className="px-6 py-3 flex gap-2">
+                    <Link href={`/dashboard/schedule/${batch.id}`}>
+                      <button className="p-2 hover:bg-blue-100 rounded text-blue-600 cursor-pointer hover:-translate-y-2">
+                        <Eye size={16} />
+                      </button>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setSelectedBatchId(batch.id);
+                        setDeleteDialog(true);
+                      }}
+                      className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ================= MOBILE CARDS ================= */}
+        <div className="sm:hidden space-y-3">
+          {batches.map((batch, index) => (
+            <div
+              key={batch.id}
+              className="border rounded-lg p-3 flex flex-col gap-2"
+            >
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold">
+                  Batch #{index + 1}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    batch.status === "PUBLISHED"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {batch.status}
+                </span>
+              </div>
+
+              <p className="text-xs text-gray-600">
+                {formatDate(batch.startDate)} – {formatDate(batch.endDate)}
+              </p>
+
+              <div className="flex gap-4 text-xs text-gray-500">
+                <span>Days: {batch.totalDays}</span>
+                <span>Entries: {batch.entries.length}</span>
+              </div>
+
+              <div className="flex items-center gap-3 mt-2">
+                <Link href={`/dashboard/schedule/${batch.id}`}>
+                  <button className="p-2 bg-blue-100 rounded text-blue-600 cursor-pointer hover:-translate-y-2">
+                    <Eye size={16} />
+                  </button>
+                </Link>
+                <button
+                  onClick={() => {
+                    setSelectedBatchId(batch.id);
+                    setDeleteDialog(true);
+                  }}
+                  className="p-2 bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ================= DELETE DIALOG ================= */}
         <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -261,18 +255,15 @@ const page = () => {
             </AlertDialogHeader>
 
             <div className="flex justify-end gap-2">
-              <AlertDialogCancel className="cursor-pointer">
-                Cancel
-              </AlertDialogCancel>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={deleteBatch}
                 disabled={deleting}
-                className="bg-red-600 hover:bg-red-700 cursor-pointer flex items-center gap-2"
+                className="bg-red-600 hover:bg-red-700 flex items-center gap-2"
               >
                 {deleting ? (
                   <>
-                    <Spinner className="h-4 w-4" />
-                    Deleting...
+                    <Spinner className="h-4 w-4" /> Deleting...
                   </>
                 ) : (
                   "Delete"
@@ -286,4 +277,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

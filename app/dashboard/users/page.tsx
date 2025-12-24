@@ -2,16 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useUser } from "@clerk/nextjs";
 import { Trash2 } from "lucide-react";
@@ -37,32 +27,24 @@ type User = {
 };
 
 export default function Page() {
-  const { user, isLoaded, isSignedIn } = useUser(); // 👈 Clerk item
-
-  // console.log("isSignedIn", isSignedIn);
-  // console.log("Current user:", user);
+  const { user } = useUser();
 
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true); // for fetch
-  const [deleteLoading, setDeleteLoading] = useState(false); // full-screen spinner during delete
+  const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+
   const ROLES = ["PENDING", "USER", "ADMIN"] as const;
 
-  // fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
         const res = await fetch("/api/users");
         const data = await res.json();
-        if (Array.isArray(data)) {
-          setUsers(data);
-        } else {
-          console.error("API did not return an array:", data);
-          setUsers([]);
-        }
+        setUsers(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
         setUsers([]);
@@ -70,15 +52,14 @@ export default function Page() {
         setLoading(false);
       }
     };
-
     fetchUsers();
   }, []);
+
   const isAdmin =
     user &&
     users.find((u) => u.email === user.primaryEmailAddress?.emailAddress)
       ?.role === "ADMIN";
 
-  // delete item
   const confirmDelete = (id: number) => {
     setSelectedUserId(id);
     setDeleteDialog(true);
@@ -114,6 +95,7 @@ export default function Page() {
       setDeleteLoading(false);
     }
   };
+
   const updateRole = async (id: number, role: string) => {
     try {
       const res = await fetch("/api/users", {
@@ -135,79 +117,152 @@ export default function Page() {
     }
   };
 
-  // Show full-screen spinner if fetching or deleting
   if (loading || deleteLoading) {
     return (
-      <div className="fixed inset-0 flex justify-center items-center  z-50">
+      <div className="fixed inset-0 flex justify-center items-center z-50">
         <Spinner className="h-12 w-12" />
       </div>
     );
   }
 
   return (
-    <div className="m-4 overflow-x-auto">
-      <Table>
-        <TableCaption>All team members</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">Id</TableHead>
-            <TableHead >ClerkId</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>First Name</TableHead>
-            <TableHead>Last Name</TableHead>
-            <TableHead>Image</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>CreatedAt</TableHead>
-            <TableHead>Actions</TableHead>
-            <TableHead>Role change</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="font-medium">{item.id}</TableCell>
-              <TableCell className="hidden md:table-cell">{item.clerkId}</TableCell>
-              <TableCell>{item.email}</TableCell>
-              <TableCell>{item.firstName}</TableCell>
-              <TableCell>{item.lastName}</TableCell>
-              <TableCell>
-                <Image
-                  src={item.imageUrl || "/default-avatar.png"}
-                  alt="User avatar"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
-              </TableCell>
-              <TableCell>{item.role}</TableCell>
-              <TableCell>
-                {new Date(item.createdAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </TableCell>
-              <TableCell>
-                {isAdmin && item.role !== "ADMIN" && (
+    <div className="max-w-full mx-auto px-2 sm:px-4">
+      <h1 className="text-xl sm:text-2xl font-bold mb-3">Users</h1>
+
+      {/* ================= DESKTOP TABLE ================= */}
+      <div className="hidden sm:block border rounded-lg overflow-x-auto">
+        <table className="w-full table-auto">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              {["#", "Email", "Name", "Avatar", "Role", "Created", "Actions", "Change Role"].map(
+                (head) => (
+                  <th
+                    key={head}
+                    className="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap"
+                  >
+                    {head}
+                  </th>
+                )
+              )}
+            </tr>
+          </thead>
+
+          <tbody className="divide-y">
+            {users.map((item, index) => (
+              <tr key={item.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm">{index + 1}</td>
+                <td className="px-4 py-3 text-sm">{item.email}</td>
+                <td className="px-4 py-3 text-sm">
+                  {item.firstName} {item.lastName}
+                </td>
+                <td className="px-4 py-3">
+                  <Image
+                    src={item.imageUrl || "/default-avatar.png"}
+                    alt="avatar"
+                    width={36}
+                    height={36}
+                    className="rounded-full"
+                  />
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      item.role === "ADMIN"
+                        ? "bg-blue-100 text-blue-800"
+                        : item.role === "USER"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {item.role}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-3">
+                  {isAdmin && item.role !== "ADMIN" && (
+                    <button
+                      onClick={() => confirmDelete(item.id)}
+                      className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {isAdmin ? (
+                    <select
+                      value={item.role}
+                      onChange={(e) => updateRole(item.id, e.target.value)}
+                      className="border rounded px-2 py-1 text-sm"
+                      disabled={item.role === "ADMIN"}
+                    >
+                      {ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    item.role
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ================= MOBILE CARDS ================= */}
+      <div className="sm:hidden space-y-3">
+        {users.map((item) => (
+          <div key={item.id} className="border rounded-lg p-3 flex gap-3">
+            <Image
+              src={item.imageUrl || "/default-avatar.png"}
+              alt="avatar"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+
+            <div className="flex-1">
+              <p className="text-sm font-semibold">
+                {item.firstName} {item.lastName}
+              </p>
+              <p className="text-xs text-gray-500 break-all">{item.email}</p>
+
+              <div className="flex flex-wrap gap-2 mt-2 items-center">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    item.role === "ADMIN"
+                      ? "bg-blue-100 text-blue-800"
+                      : item.role === "USER"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {item.role}
+                </span>
+
+                <span className="text-xs text-gray-400">
+                  {new Date(item.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+
+              {isAdmin && item.role !== "ADMIN" && (
+                <div className="flex items-center gap-3 mt-3">
                   <button
                     onClick={() => confirmDelete(item.id)}
-                    className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                    className="p-2 bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={16}   />
                   </button>
-                )}
-              </TableCell>
-              <TableCell>
-                {isAdmin ? (
+
                   <select
                     value={item.role}
                     onChange={(e) => updateRole(item.id, e.target.value)}
-                    className="border rounded px-2 py-1 text-sm"
-                    disabled={
-                      item.role === "ADMIN"
-                      //  &&
-                      // item.email === user?.primaryEmailAddress?.emailAddress
-                    }
+                    className="border rounded px-2 py-1 text-xs"
                   >
                     {ROLES.map((role) => (
                       <option key={role} value={role}>
@@ -215,46 +270,40 @@ export default function Page() {
                       </option>
                     ))}
                   </select>
-                ) : (
-                  item.role
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-        <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete User</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this user? This action cannot be
-                undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <div className="flex justify-end gap-2">
-              <AlertDialogCancel className="cursor-pointer">
-                Cancel
-              </AlertDialogCancel>
-
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={deleting}
-                className="bg-red-600 hover:bg-red-700 cursor-pointer flex items-center gap-2"
-              >
-                {deleting ? (
-                  <>
-                    <Spinner className="h-4 w-4" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </AlertDialogAction>
+                </div>
+              )}
             </div>
-          </AlertDialogContent>
-        </AlertDialog>
-      </Table>
+          </div>
+        ))}
+      </div>
+
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 flex items-center gap-2 cursor-pointer hover:-translate-y-2"
+            >
+              {deleting ? (
+                <>
+                  <Spinner className="h-4 w-4" /> Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

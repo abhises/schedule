@@ -127,7 +127,7 @@ export default function GlobalChat() {
           setOpen((o) => !o);
           setUnread(0);
         }}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-white shadow-lg hover:bg-blue-700 transition cursor-pointer"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-white shadow-lg hover:bg-blue-700 transition cursor-pointer  hover:-translate-y-2"
       >
         💬 Chat
         {unread > 0 && (
