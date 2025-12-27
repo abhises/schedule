@@ -1,6 +1,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
+import { sendEmail } from "@/lib/mailer";
 
 // Ensure Node runtime (recommended for Prisma)
 export const runtime = "nodejs";
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
   // 👤 USER CREATED
   // ─────────────────────────────
   if (type === "user.created") {
-    await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { clerkId: data.id },
       update: {
         email: data.email_addresses?.[0]?.email_address ?? null,
@@ -71,6 +72,47 @@ export async function POST(req: Request) {
         isDeleted: false,
       },
     });
+
+    // 🔔 SEND EMAIL TO ADMINS (same pattern you already use)
+    const admins = await prisma.user.findMany({
+      where: {
+        role: "ADMIN",
+        isDeleted: false,
+      },
+      select: {
+        email: true,
+      },
+    });
+    // console.log("Admins to notify:", admins);
+
+    const emails = admins
+      .map((a) => a.email)
+      .filter((email): email is string => Boolean(email));
+
+    if (emails.length) {
+      await Promise.all(
+        [...new Set(emails)].map((email) =>
+          sendEmail(
+            email,
+            "🚨 New user pending approval",
+            `
+          <p>Hello Admin,</p>
+          <p>A new user has registered and is awaiting approval.</p>
+          <p><b>Name:</b> ${user.firstName ?? ""} ${user.lastName ?? ""}</p>
+          <p><b>Email:</b> ${user.email}</p>
+          <br/>
+          <p>
+            <a href="${process.env.APP_URL}/admin/users">
+              Review User
+            </a>
+          </p>
+          <br/>
+          <p>— Team</p>
+        `
+          )
+        )
+      );
+    }
   }
 
   // ─────────────────────────────

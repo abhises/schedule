@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    console.log("Prepared entries:", preparedEntries);
+    // console.log("Prepared entries:", preparedEntries);
 
     const batch = await prisma.scheduleBatch.create({
       data: {
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("Batch created:", batch);
+    // console.log("Batch created:", batch);
 
     return NextResponse.json(batch, { status: 201 });
   } catch (error) {
