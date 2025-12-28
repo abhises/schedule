@@ -19,7 +19,6 @@ import {
 
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -119,19 +118,11 @@ export default function CreateSchedulePage() {
   const getUserColor = (userId: number) =>
     USER_COLORS[userId % USER_COLORS.length];
 
-  // const hasDuplicate = (date: Date, userId: number) =>
-  //   drafts.some(
-  //     (d) =>
-  //       d.date.toDateString() === date.toDateString() &&
-  //       d.userIds.includes(userId)
-  //   );
-
   const hasConflict = (userId: number, date: Date, start: Date, end: Date) => {
     return events.some((e) => {
       const sameUser = e.userId === userId;
       const sameDay = e.start.toDateString() === date.toDateString();
       const overlap = start < e.end && end > e.start;
-
       return sameUser && sameDay && overlap;
     });
   };
@@ -139,17 +130,8 @@ export default function CreateSchedulePage() {
   const isDateDisabled = (date: Date): boolean => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // Disable past dates (before today)
-    if (date < today) {
-      return true;
-    }
-
-    // Check if date already has schedule entries
-    if (existingDates.includes(date.toDateString())) {
-      return true;
-    }
-
+    if (date < today) return true;
+    // if (existingDates.includes(date.toDateString())) return true;
     return false;
   };
 
@@ -158,13 +140,7 @@ export default function CreateSchedulePage() {
     slotDate.setHours(0, 0, 0, 0);
 
     if (isDateDisabled(slotDate)) {
-      if (slotDate < new Date()) {
-        setError("Cannot create schedule for past dates");
-      } else {
-        setError(
-          "A schedule already exists for this date. Edit or delete the existing schedule."
-        );
-      }
+      setError("A schedule already exists or date is invalid");
       return;
     }
 
@@ -174,6 +150,7 @@ export default function CreateSchedulePage() {
     setOpen(true);
   };
 
+  // 🔴 FIXED FUNCTION (LOGIC ONLY)
   const handleAddDraft = () => {
     if (!slot || selectedUsers.length === 0) {
       setError("Please select at least one user");
@@ -183,60 +160,48 @@ export default function CreateSchedulePage() {
     const baseDate = new Date(slot.start);
     baseDate.setHours(0, 0, 0, 0);
 
-    if (isDateDisabled(baseDate)) {
-      setError("This date is no longer available");
-      return;
-    }
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
 
-    const newDrafts: DraftSchedule[] = [];
-    const newEvents: CalendarEvent[] = [];
-    const validUsers = selectedUsers;
+    const start = new Date(baseDate);
+    const end = new Date(baseDate);
+    start.setHours(sh, sm);
+    end.setHours(eh, em);
 
-    // const validUsers = selectedUsers.filter(
-    //   (uid) => !hasDuplicate(baseDate, uid)
-    // );
-
-    // if (validUsers.length === 0) {
-    //   setError("All selected users already have a schedule for this date");
-    //   return;
-    // }
-
-    const draftId = crypto.randomUUID();
-
-    newDrafts.push({
-      id: draftId,
-      date: baseDate,
-      userIds: validUsers,
-      startTime,
-      endTime,
-    });
-
-    validUsers.forEach((uid) => {
+    // ✅ HARD STOP on ANY conflict
+    for (const uid of selectedUsers) {
       const user = users.find((u) => u.id === uid);
-      const start = new Date(baseDate);
-      const end = new Date(baseDate);
-
-      const [sh, sm] = startTime.split(":").map(Number);
-      const [eh, em] = endTime.split(":").map(Number);
-
-      start.setHours(sh, sm);
-      end.setHours(eh, em);
       if (hasConflict(uid, baseDate, start, end)) {
         setError(`${user?.firstName} already has a schedule during this time`);
         return;
       }
+    }
 
-      newEvents.push({
+    const draftId = crypto.randomUUID();
+
+    setDrafts((p) => [
+      ...p,
+      {
+        id: draftId,
+        date: baseDate,
+        userIds: selectedUsers,
+        startTime,
+        endTime,
+      },
+    ]);
+
+    const newEvents: CalendarEvent[] = selectedUsers.map((uid) => {
+      const user = users.find((u) => u.id === uid)!;
+      return {
         id: `${draftId}-${uid}`,
-        title: `${user?.firstName} ${user?.lastName}`,
+        title: `${user.firstName} ${user.lastName}`,
         userId: uid,
-        user: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`,
+        user: `${user.firstName ?? ""} ${user.lastName ?? ""}`,
         start,
         end,
-      });
+      };
     });
 
-    setDrafts((p) => [...p, ...newDrafts]);
     setEvents((p) => [...p, ...newEvents]);
     setOpen(false);
     setError(null);
@@ -265,14 +230,11 @@ export default function CreateSchedulePage() {
     try {
       const entries = drafts.flatMap((draft) =>
         draft.userIds.map((userId) => {
-          // Convert date to YYYY-MM-DD format without timezone conversion
-          const year = draft.date.getFullYear();
-          const month = String(draft.date.getMonth() + 1).padStart(2, "0");
-          const day = String(draft.date.getDate()).padStart(2, "0");
-          const dateString = `${year}-${month}-${day}`;
-
+          const y = draft.date.getFullYear();
+          const m = String(draft.date.getMonth() + 1).padStart(2, "0");
+          const d = String(draft.date.getDate()).padStart(2, "0");
           return {
-            date: dateString,
+            date: `${y}-${m}-${d}`,
             startTime: draft.startTime,
             endTime: draft.endTime,
             userId,
@@ -295,9 +257,7 @@ export default function CreateSchedulePage() {
       setEvents([]);
       setSuccessDialog(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to publish schedules"
-      );
+      setError(err instanceof Error ? err.message : "Failed");
     } finally {
       setIsLoading(false);
     }

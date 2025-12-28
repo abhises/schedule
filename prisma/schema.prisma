@@ -81,7 +81,7 @@ model ScheduleEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([date, userId])
+  @@unique([userId, date, startTime, endTime])
   @@index([date])
   @@index([userId])
   @@index([batchId])

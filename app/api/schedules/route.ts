@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         entries: {
           createMany: {
             data: preparedEntries,
-            skipDuplicates: true,
+            // skipDuplicates: true,
           },
         },
       },
