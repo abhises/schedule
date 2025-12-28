@@ -28,6 +28,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/context/useUsers";
+import { blockedEmails } from "@/constants/blockuser";
 
 type ScheduleEntry = {
   id: number;
@@ -215,110 +216,153 @@ export default function ScheduleDetailPage() {
   };
 
   const updateEntry = async () => {
-    if (!editingEntry || !batch) return;
+  if (!editingEntry || !batch) return;
 
-    try {
-      setUpdatingEntry(true);
+  // If entry has a negative ID (new entry not saved yet), just update front-end state
+  if (editingEntry.id < 0) {
+    setBatch((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        entries: prev.entries.map((e) =>
+          e.id === editingEntry.id
+            ? { ...e, startTime: editStartTime, endTime: editEndTime, totalHours: (() => {
+                const [sh, sm] = editStartTime.split(":").map(Number);
+                const [eh, em] = editEndTime.split(":").map(Number);
+                return Math.round(((eh + em/60) - (sh + sm/60)) * 100) / 100;
+              })() }
+            : e
+        ),
+      };
+    });
 
-      const response = await fetch(
-        `/api/schedules/${batch.id}/entries/${editingEntry.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            startTime: editStartTime,
-            endTime: editEndTime,
-          }),
-        }
-      );
+    setEvents((prev) =>
+      prev.map((event) => {
+        if (event.id !== String(editingEntry.id)) return event;
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to update entry");
+        const date = new Date(editingEntry.date);
+        const [sh, sm] = editStartTime.split(":").map(Number);
+        const [eh, em] = editEndTime.split(":").map(Number);
+
+        const start = new Date(date); start.setHours(sh, sm, 0, 0);
+        const end = new Date(date); end.setHours(eh, em, 0, 0);
+
+        return { ...event, start, end };
+      })
+    );
+
+    setEditDialog(false);
+    setEditingEntry(null);
+    return;
+  }
+
+  // ---------------- Existing entry ----------------
+  try {
+    setUpdatingEntry(true);
+    const response = await fetch(
+      `/api/schedules/${batch.id}/entries/${editingEntry.id}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startTime: editStartTime, endTime: editEndTime }),
       }
+    );
 
-      const updatedEntry: ScheduleEntry = await response.json();
-
-      // ✅ Update entries
-      setBatch((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          entries: prev.entries.map((e) =>
-            e.id === updatedEntry.id ? updatedEntry : e
-          ),
-        };
-      });
-
-      // ✅ Update calendar events
-      setEvents((prev) =>
-        prev.map((event) => {
-          if (event.id !== String(updatedEntry.id)) return event;
-
-          const date = new Date(updatedEntry.date);
-          const [sh, sm] = updatedEntry.startTime.split(":").map(Number);
-          const [eh, em] = updatedEntry.endTime.split(":").map(Number);
-
-          const start = new Date(date);
-          start.setHours(sh, sm, 0, 0);
-
-          const end = new Date(date);
-          end.setHours(eh, em, 0, 0);
-
-          return { ...event, start, end };
-        })
-      );
-
-      setEditDialog(false);
-      setEditingEntry(null);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Update failed");
-    } finally {
-      setUpdatingEntry(false);
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Failed to update entry");
     }
-  };
 
-  const deleteEntry = async () => {
-    if (!batch || !entryToDelete) return;
+    const updatedEntry: ScheduleEntry = await response.json();
 
-    try {
-      setDeletingEntry(true);
-      setLoading(true);
-      const response = await fetch(
-        `/api/schedules/${batch.id}/entries/${entryToDelete.id}`,
-        { method: "DELETE" }
-      );
+    setBatch((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        entries: prev.entries.map((e) =>
+          e.id === updatedEntry.id ? updatedEntry : e
+        ),
+      };
+    });
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Failed to delete entry");
-      }
+    setEvents((prev) =>
+      prev.map((event) => {
+        if (event.id !== String(updatedEntry.id)) return event;
 
-      // Update batch entries
-      setBatch((prev) =>
-        prev
-          ? {
-              ...prev,
-              entries: prev.entries.filter((e) => e.id !== entryToDelete.id),
-            }
-          : prev
-      );
+        const date = new Date(updatedEntry.date);
+        const [sh, sm] = updatedEntry.startTime.split(":").map(Number);
+        const [eh, em] = updatedEntry.endTime.split(":").map(Number);
 
-      // Update calendar
-      setEvents((prev) =>
-        prev.filter((e) => e.id !== String(entryToDelete.id))
-      );
+        const start = new Date(date); start.setHours(sh, sm, 0, 0);
+        const end = new Date(date); end.setHours(eh, em, 0, 0);
 
-      setEntryToDelete(null);
-      setDeleteEntryDialog(false);
-      setLoading(false);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Delete failed");
-    } finally {
-      setDeletingEntry(false);
-      setLoading(false);
+        return { ...event, start, end };
+      })
+    );
+
+    setEditDialog(false);
+    setEditingEntry(null);
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "Update failed");
+  } finally {
+    setUpdatingEntry(false);
+  }
+};
+
+ const deleteEntry = async () => {
+  if (!batch || !entryToDelete) return;
+
+  // If entry has no DB ID, just remove from front-end state
+  if (entryToDelete.id < 0) {
+    setBatch((prev) =>
+      prev
+        ? { ...prev, entries: prev.entries.filter((e) => e.id !== entryToDelete.id) }
+        : prev
+    );
+
+    setEvents((prev) =>
+      prev.filter((e) => e.id !== String(entryToDelete.id))
+    );
+
+    setEntryToDelete(null);
+    setDeleteEntryDialog(false);
+    return;
+  }
+
+  // ---------------- Existing entry ----------------
+  try {
+    setDeletingEntry(true);
+    setLoading(true);
+    const response = await fetch(
+      `/api/schedules/${batch.id}/entries/${entryToDelete.id}`,
+      { method: "DELETE" }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Failed to delete entry");
     }
-  };
+
+    setBatch((prev) =>
+      prev
+        ? { ...prev, entries: prev.entries.filter((e) => e.id !== entryToDelete.id) }
+        : prev
+    );
+
+    setEvents((prev) =>
+      prev.filter((e) => e.id !== String(entryToDelete.id))
+    );
+
+    setEntryToDelete(null);
+    setDeleteEntryDialog(false);
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "Delete failed");
+  } finally {
+    setDeletingEntry(false);
+    setLoading(false);
+  }
+};
+
 
   const handleSelectSlot = (slot: { start: Date }) => {
     if (batch?.status !== "DRAFTED") return;
@@ -596,7 +640,7 @@ export default function ScheduleDetailPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteBatch}
-              className="bg-red-600 hover:bg-red-700 cursor-pointer"
+              className="bg-red-300 hover:bg-red-700 cursor-pointer hover:-translate-y-2"
             >
               Delete
             </AlertDialogAction>
@@ -741,7 +785,7 @@ export default function ScheduleDetailPage() {
               onChange={(e) => setAddUserId(Number(e.target.value))}
             >
               <option value="">Select user</option>
-              {users
+              {users.filter((u) => !blockedEmails.includes(u.email))
 
                 .filter((v, i, a) => a.findIndex((x) => x.id === v.id) === i)
                 .map((u) => (

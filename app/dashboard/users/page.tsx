@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { blockedEmails } from "@/constants/blockuser";
 
 type User = {
   id: number;
@@ -25,7 +26,6 @@ type User = {
   role: string;
   createdAt: string;
 };
-const blockedEmails = ["abhisespoudyal@gmail.com", "teamplanteamplan@gmail.com"];
 
 export default function Page() {
   const { user } = useUser();

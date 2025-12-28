@@ -40,6 +40,7 @@ import {
   CommandItem,
   CommandGroup,
 } from "@/components/ui/command";
+import { blockedEmails } from "@/constants/blockuser";
 
 type User = {
   id: number;
@@ -346,7 +347,7 @@ export default function CreateSchedulePage() {
                 <Command>
                   <CommandInput placeholder="Search users..." />
                   <CommandGroup>
-                    {users.map((u) => {
+                    {users.filter((u) =>!blockedEmails.includes(u.email)).map((u) => {
                       const selected = selectedUsers.includes(u.id);
                       return (
                         <CommandItem
