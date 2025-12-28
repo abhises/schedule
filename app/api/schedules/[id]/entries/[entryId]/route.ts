@@ -7,9 +7,10 @@ type RouteParams = {
   params: Promise<{ id: string; entryId: string }>;
 };
 
+
 export async function PATCH(
   req: NextRequest,
-  { params }: RouteParams
+  { params }: { params: { id: string; entryId: string } }
 ) {
   try {
     const { userId: clerkId } = await auth();
@@ -17,21 +18,19 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, entryId } = await params;
-    const batchId = parseInt(id, 10);
-    const entryIdNum = parseInt(entryId, 10);
+    const batchId = Number(params.id);
+    const entryId = Number(params.entryId);
 
-    if (isNaN(batchId) || isNaN(entryIdNum)) {
+    if (isNaN(batchId) || isNaN(entryId)) {
       return NextResponse.json(
         { error: "Invalid batch or entry ID" },
         { status: 400 }
       );
     }
 
-    const body = await req.json();
-    const { startTime, endTime } = body;
+    const { startTime, endTime } = await req.json();
 
-    // Validate time format
+    // ---------------- VALIDATION ----------------
     if (!startTime || !endTime) {
       return NextResponse.json(
         { error: "Start time and end time are required" },
@@ -39,16 +38,9 @@ export async function PATCH(
       );
     }
 
-    if (!/^\d{2}:\d{2}$/.test(startTime)) {
+    if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) {
       return NextResponse.json(
-        { error: "Invalid start time format" },
-        { status: 400 }
-      );
-    }
-
-    if (!/^\d{2}:\d{2}$/.test(endTime)) {
-      return NextResponse.json(
-        { error: "Invalid end time format" },
+        { error: "Invalid time format (HH:mm)" },
         { status: 400 }
       );
     }
@@ -60,28 +52,25 @@ export async function PATCH(
       );
     }
 
-    // Verify batch exists and is in DRAFTED status
+    // ---------------- BATCH CHECK ----------------
     const batch = await prisma.scheduleBatch.findUnique({
       where: { id: batchId },
     });
 
     if (!batch) {
-      return NextResponse.json(
-        { error: "Batch not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Batch not found" }, { status: 404 });
     }
 
     if (batch.status !== "DRAFTED") {
       return NextResponse.json(
-        { error: "Can only edit entries in DRAFTED batches" },
+        { error: "Only DRAFTED batches can be edited" },
         { status: 400 }
       );
     }
 
-    // Get the entry to calculate hours
+    // ---------------- ENTRY CHECK ----------------
     const entry = await prisma.scheduleEntry.findUnique({
-      where: { id: entryIdNum },
+      where: { id: entryId },
     });
 
     if (!entry || entry.batchId !== batchId) {
@@ -91,22 +80,50 @@ export async function PATCH(
       );
     }
 
-    // Calculate total hours
-    const [startH, startM] = startTime.split(":").map(Number);
-    const [endH, endM] = endTime.split(":").map(Number);
+    // ---------------- TIME CONFLICT CHECK ----------------
+    const otherEntries = await prisma.scheduleEntry.findMany({
+      where: {
+        userId: entry.userId,
+        date: entry.date,
+        NOT: { id: entryId },
+      },
+    });
 
-    const startDateTime = new Date();
-    startDateTime.setHours(startH, startM, 0, 0);
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
 
-    const endDateTime = new Date();
-    endDateTime.setHours(endH, endM, 0, 0);
+    const newStart = new Date(entry.date);
+    newStart.setHours(sh, sm, 0, 0);
 
+    const newEnd = new Date(entry.date);
+    newEnd.setHours(eh, em, 0, 0);
+
+    for (const e of otherEntries) {
+      const [esh, esm] = e.startTime.split(":").map(Number);
+      const [eeh, eem] = e.endTime.split(":").map(Number);
+
+      const es = new Date(entry.date);
+      es.setHours(esh, esm, 0, 0);
+
+      const ee = new Date(entry.date);
+      ee.setHours(eeh, eem, 0, 0);
+
+      // overlap rule
+      if (newStart < ee && newEnd > es) {
+        return NextResponse.json(
+          { error: "Time conflict for this user on the same day" },
+          { status: 409 }
+        );
+      }
+    }
+
+    // ---------------- HOURS CALC ----------------
     const totalHours =
-      (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60);
+      (newEnd.getTime() - newStart.getTime()) / (1000 * 60 * 60);
 
-    // Update entry
+    // ---------------- UPDATE ----------------
     const updatedEntry = await prisma.scheduleEntry.update({
-      where: { id: entryIdNum },
+      where: { id: entryId },
       data: {
         startTime,
         endTime,
@@ -126,15 +143,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedEntry);
   } catch (error) {
-    console.error("Error updating entry:", error);
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: `Error: ${error.message}` },
-        { status: 500 }
-      );
-    }
-
+    console.error("PATCH schedule entry error:", error);
     return NextResponse.json(
       { error: "Failed to update entry" },
       { status: 500 }

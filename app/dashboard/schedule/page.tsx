@@ -257,11 +257,11 @@ const Page = () => {
             </AlertDialogHeader>
 
             <div className="flex justify-end gap-2">
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="cursor-pointer hover:-translate-y-2">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={deleteBatch}
                 disabled={deleting}
-                className="bg-red-600 hover:bg-red-700 flex items-center gap-2"
+                className="bg-red-300 hover:bg-red-700 flex items-center gap-2 cursor-pointer hover:-translate-y-2"
               >
                 {deleting ? (
                   <>

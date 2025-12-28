@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Input } from "@/components/ui/input";
-import { set } from "date-fns";
+import { useUsers } from "@/context/useUsers";
 
 type ScheduleEntry = {
   id: number;
@@ -61,7 +61,7 @@ export default function ScheduleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-
+  const { users, setUsers } = useUsers();
   const [batch, setBatch] = useState<ScheduleBatch | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,12 @@ export default function ScheduleDetailPage() {
   );
   const [updatingEntry, setUpdatingEntry] = useState(false);
   const [deletingEntry, setDeletingEntry] = useState(false);
+  const [addDialog, setAddDialog] = useState(false);
+  const [addDate, setAddDate] = useState<Date | null>(null);
+  const [addUserId, setAddUserId] = useState<number | null>(null);
+  const [addStartTime, setAddStartTime] = useState("10:00");
+  const [addEndTime, setAddEndTime] = useState("14:00");
+  const [addingEntry, setAddingEntry] = useState(false);
 
   useEffect(() => {
     fetchBatchDetail();
@@ -132,14 +138,16 @@ export default function ScheduleDetailPage() {
   const publishBatch = async () => {
     if (!batch) return;
     setLoading(true);
-
     setPublishDialog(false); // close dialog immediately
 
     try {
       const response = await fetch(`/api/schedules/${batch.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "PUBLISHED" }),
+        body: JSON.stringify({
+          status: "PUBLISHED",
+          entries: batch.entries, // send all entries
+        }),
       });
 
       if (!response.ok) throw new Error("Failed to publish batch");
@@ -312,6 +320,81 @@ export default function ScheduleDetailPage() {
     }
   };
 
+  const handleSelectSlot = (slot: { start: Date }) => {
+    if (batch?.status !== "DRAFTED") return;
+
+    const date = new Date(slot.start);
+    date.setHours(0, 0, 0, 0);
+
+    setAddDate(date);
+    setAddUserId(null);
+    setAddStartTime("10:00");
+    setAddEndTime("14:00");
+    setAddDialog(true);
+  };
+
+  // console.log("users", users);
+
+  const createEntry = () => {
+    if (!batch || !addDate || !addUserId) return;
+
+    const tempId = Date.now() * -1;
+    const selectedUserId = Number(addUserId);
+
+    const user = users.find((u) => u.id === Number(selectedUserId));
+    if (!user) return;
+
+    const newEntry: ScheduleEntry = {
+      id: tempId,
+      date: addDate.toISOString(),
+      startTime: addStartTime,
+      endTime: addEndTime,
+      totalHours: (() => {
+        const [sh, sm] = addStartTime.split(":").map(Number);
+        const [eh, em] = addEndTime.split(":").map(Number);
+        return eh + em / 60 - (sh + sm / 60);
+      })(),
+      userId: user.id,
+      user: {
+        id: user.id,
+        email: user.email,
+        // role: user.role,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+      },
+    };
+
+    setBatch((prev) =>
+      prev ? { ...prev, entries: [...prev.entries, newEntry] } : prev
+    );
+
+    const date = new Date(addDate);
+    const [sh, sm] = addStartTime.split(":").map(Number);
+    const [eh, em] = addEndTime.split(":").map(Number);
+
+    const start = new Date(date);
+    start.setHours(sh, sm, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(eh, em, 0, 0);
+
+    setEvents((prev) => [
+      ...prev,
+      {
+        id: String(tempId),
+        title: `${user.firstName} ${user.lastName}`,
+        start,
+        end,
+        userId: user.id,
+        user: `${user.firstName} ${user.lastName}`,
+      },
+    ]);
+
+    setAddDialog(false);
+  };
+
+   
+
   if (loading) {
     return (
       <div className="fixed inset-0 flex justify-center items-center  z-50">
@@ -404,6 +487,7 @@ export default function ScheduleDetailPage() {
       <div className="mb-8 border rounded-lg overflow-hidden">
         <CalendarComponent
           events={events}
+          onSelectSlot={handleSelectSlot}
           eventPropGetter={(event) => ({
             style: {
               backgroundColor: getUserColor(event.userId),
@@ -535,13 +619,13 @@ export default function ScheduleDetailPage() {
           </AlertDialogHeader>
 
           <div className="flex justify-end gap-2">
-            <AlertDialogCancel className="cursor-pointer">
+            <AlertDialogCancel className="cursor-pointer hover:-translate-y-2">
               Cancel
             </AlertDialogCancel>
 
             <AlertDialogAction
               onClick={publishBatch}
-              className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+              className="bg-blue-600 hover:bg-green-700 cursor-pointer hover:-translate-y-2"
             >
               Publish
             </AlertDialogAction>
@@ -638,6 +722,60 @@ export default function ScheduleDetailPage() {
           </div>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={addDialog} onOpenChange={setAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Entry</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Date: {addDate?.toLocaleDateString()}
+            </p>
+
+            {/* USER SELECT (simple select for now) */}
+            <select
+              className="w-full border rounded px-3 py-2"
+              value={addUserId ?? ""}
+              onChange={(e) => setAddUserId(Number(e.target.value))}
+            >
+              <option value="">Select user</option>
+              {users
+
+                .filter((v, i, a) => a.findIndex((x) => x.id === v.id) === i)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName} {u.lastName}
+                  </option>
+                ))}
+            </select>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-sm">Start Time</label>
+                <Input
+                  type="time"
+                  value={addStartTime}
+                  onChange={(e) => setAddStartTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm">End Time</label>
+                <Input
+                  type="time"
+                  value={addEndTime}
+                  onChange={(e) => setAddEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <CustomButton onClick={createEntry} disabled={addingEntry}>
+              {addingEntry ? "Adding..." : "Add Entry"}
+            </CustomButton>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

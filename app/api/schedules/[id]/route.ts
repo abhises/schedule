@@ -62,65 +62,81 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 // PATCH - Update batch status (publish/draft)
 
 // PATCH - Update batch status (publish/draft)
-export async function PATCH(req: NextRequest, { params }: RouteParams) {
+type EntryPayload = {
+  id?: number; // optional for new entries
+  userId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+};
+
+export async function PATCH(req: NextRequest, { params }: any) {
   try {
     const { userId: clerkId } = await auth();
-    if (!clerkId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id } = await params;
+    const { id } = await params; // ✅ await params
     const batchId = parseInt(id, 10);
 
-    const { status } = await req.json();
+    if (isNaN(batchId)) return NextResponse.json({ error: "Invalid batch ID" }, { status: 400 });
+
+    const { status, entries }: { status?: "DRAFTED" | "PUBLISHED"; entries?: EntryPayload[] } = await req.json();
 
     const batch = await prisma.scheduleBatch.update({
       where: { id: batchId },
-      data: { status },
-      include: {
+      data: {
+        status,
         entries: {
-          include: {
-            user: {
-              select: {
-                email: true,
-                firstName: true,
+          // Update only existing entries with real IDs
+          updateMany: entries
+            ?.filter((e) => e.id && e.id > 0)
+            .map((e) => ({
+              where: { id: e.id },
+              data: {
+                userId: e.userId,
+                date: e.date,
+                startTime: e.startTime,
+                endTime: e.endTime,
+                totalHours:
+                  Number(e.endTime.split(":")[0]) +
+                  Number(e.endTime.split(":")[1]) / 60 -
+                  (Number(e.startTime.split(":")[0]) + Number(e.startTime.split(":")[1]) / 60),
               },
-            },
-          },
+            })),
+          // Create new entries
+          create: entries
+            ?.filter((e) => !e.id || e.id <= 0)
+            .map((e) => ({
+              userId: e.userId,
+              date: e.date,
+              startTime: e.startTime,
+              endTime: e.endTime,
+              totalHours:
+                Number(e.endTime.split(":")[0]) +
+                Number(e.endTime.split(":")[1]) / 60 -
+                (Number(e.startTime.split(":")[0]) + Number(e.startTime.split(":")[1]) / 60),
+            })),
         },
+      },
+      include: {
+        entries: { include: { user: { select: { email: true, firstName: true } } } },
       },
     });
 
-    // 🔔 SEND EMAIL WHEN PUBLISHED
+    // send emails if published
     if (status === "PUBLISHED") {
-      const emails = batch.entries
-        .map((e) => e.user.email)
-        .filter((email): email is string => Boolean(email));
-
+      const emails = batch.entries.map((e) => e.user.email).filter(Boolean);
       await Promise.all(
         [...new Set(emails)].map((email) =>
-          sendEmail(
-            email,
-            "📅 Your schedule has been published",
-            `
-          <p>Hello,</p>
-          <p>Your schedule has just been <b>published</b>.</p>
-          <p>Please log in to view your assigned slots.</p>
-          <br/>
-          <p>— Team</p>
-        `
-          )
+          sendEmail(email!, "📅 Your schedule has been published", "<p>Your schedule is published.</p>")
         )
       );
     }
 
     return NextResponse.json(batch);
-  } catch (error) {
-    console.error("Error updating batch:", error);
-    return NextResponse.json(
-      { error: "Failed to update batch" },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Failed to update batch" }, { status: 500 });
   }
 }
 
