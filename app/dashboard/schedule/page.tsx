@@ -70,6 +70,7 @@ const Page = () => {
 
     try {
       setDeleting(true);
+      setLoading(true);
       await fetch(`/api/schedules/${selectedBatchId}`, { method: "DELETE" });
       setBatches((prev) => prev.filter((b) => b.id !== selectedBatchId));
       setDeleteDialog(false);
@@ -78,6 +79,7 @@ const Page = () => {
       alert("Failed to delete batch");
     } finally {
       setDeleting(false);
+      setLoading(false);
     }
   };
 

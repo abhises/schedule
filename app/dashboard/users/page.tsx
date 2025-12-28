@@ -25,10 +25,10 @@ type User = {
   role: string;
   createdAt: string;
 };
+const blockedEmails = ["abhisespoudyal@gmail.com", "teamplanteamplan@gmail.com"];
 
 export default function Page() {
   const { user } = useUser();
-
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -134,39 +134,118 @@ export default function Page() {
         <table className="w-full table-auto">
           <thead className="bg-gray-50 border-b">
             <tr>
-              {["#", "Email", "Name", "Avatar", "Role", "Created", "Actions", "Change Role"].map(
-                (head) => (
-                  <th
-                    key={head}
-                    className="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap"
-                  >
-                    {head}
-                  </th>
-                )
-              )}
+              {[
+                "#",
+                "Email",
+                "Name",
+                "Avatar",
+                "Role",
+                "Created",
+                "Actions",
+                "Change Role",
+              ].map((head) => (
+                <th
+                  key={head}
+                  className="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap"
+                >
+                  {head}
+                </th>
+              ))}
             </tr>
           </thead>
 
           <tbody className="divide-y">
-            {users.map((item, index) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm">{index + 1}</td>
-                <td className="px-4 py-3 text-sm">{item.email}</td>
-                <td className="px-4 py-3 text-sm">
+            {users
+              .filter((user) => !blockedEmails.includes(user.email))
+              .map((item, index) => (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm">{item.email}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {item.firstName} {item.lastName}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Image
+                      src={item.imageUrl || "/default-avatar.png"}
+                      alt="avatar"
+                      width={36}
+                      height={36}
+                      className="rounded-full"
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        item.role === "ADMIN"
+                          ? "bg-blue-100 text-blue-800"
+                          : item.role === "USER"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {item.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    {isAdmin && item.role !== "ADMIN" && (
+                      <button
+                        onClick={() => confirmDelete(item.id)}
+                        className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {isAdmin ? (
+                      <select
+                        value={item.role}
+                        onChange={(e) => updateRole(item.id, e.target.value)}
+                        className="border rounded px-2 py-1 text-sm"
+                        disabled={item.role === "ADMIN"}
+                      >
+                        {ROLES.map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      item.role
+                    )}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ================= MOBILE CARDS ================= */}
+      <div className="sm:hidden space-y-3">
+        {users
+          .filter((user) => !blockedEmails.includes(user.email))
+          .map((item) => (
+            <div key={item.id} className="border rounded-lg p-3 flex gap-3">
+              <Image
+                src={item.imageUrl || "/default-avatar.png"}
+                alt="avatar"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+
+              <div className="flex-1">
+                <p className="text-sm font-semibold">
                   {item.firstName} {item.lastName}
-                </td>
-                <td className="px-4 py-3">
-                  <Image
-                    src={item.imageUrl || "/default-avatar.png"}
-                    alt="avatar"
-                    width={36}
-                    height={36}
-                    className="rounded-full"
-                  />
-                </td>
-                <td className="px-4 py-3 text-sm">
+                </p>
+                <p className="text-xs text-gray-500 break-all">{item.email}</p>
+
+                <div className="flex flex-wrap gap-2 mt-2 items-center">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       item.role === "ADMIN"
                         ? "bg-blue-100 text-blue-800"
                         : item.role === "USER"
@@ -176,27 +255,25 @@ export default function Page() {
                   >
                     {item.role}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-3">
-                  {isAdmin && item.role !== "ADMIN" && (
+
+                  <span className="text-xs text-gray-400">
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+
+                {isAdmin && item.role !== "ADMIN" && (
+                  <div className="flex items-center gap-3 mt-3">
                     <button
                       onClick={() => confirmDelete(item.id)}
-                      className="p-2 hover:bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
+                      className="p-2 bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
                     >
                       <Trash2 size={16} />
                     </button>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {isAdmin ? (
+
                     <select
                       value={item.role}
                       onChange={(e) => updateRole(item.id, e.target.value)}
-                      className="border rounded px-2 py-1 text-sm"
-                      disabled={item.role === "ADMIN"}
+                      className="border rounded px-2 py-1 text-xs"
                     >
                       {ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -204,77 +281,11 @@ export default function Page() {
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    item.role
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ================= MOBILE CARDS ================= */}
-      <div className="sm:hidden space-y-3">
-        {users.map((item) => (
-          <div key={item.id} className="border rounded-lg p-3 flex gap-3">
-            <Image
-              src={item.imageUrl || "/default-avatar.png"}
-              alt="avatar"
-              width={40}
-              height={40}
-              className="rounded-full"
-            />
-
-            <div className="flex-1">
-              <p className="text-sm font-semibold">
-                {item.firstName} {item.lastName}
-              </p>
-              <p className="text-xs text-gray-500 break-all">{item.email}</p>
-
-              <div className="flex flex-wrap gap-2 mt-2 items-center">
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    item.role === "ADMIN"
-                      ? "bg-blue-100 text-blue-800"
-                      : item.role === "USER"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-yellow-100 text-yellow-800"
-                  }`}
-                >
-                  {item.role}
-                </span>
-
-                <span className="text-xs text-gray-400">
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </span>
+                  </div>
+                )}
               </div>
-
-              {isAdmin && item.role !== "ADMIN" && (
-                <div className="flex items-center gap-3 mt-3">
-                  <button
-                    onClick={() => confirmDelete(item.id)}
-                    className="p-2 bg-red-100 rounded text-red-600 cursor-pointer hover:-translate-y-2"
-                  >
-                    <Trash2 size={16}   />
-                  </button>
-
-                  <select
-                    value={item.role}
-                    onChange={(e) => updateRole(item.id, e.target.value)}
-                    className="border rounded px-2 py-1 text-xs"
-                  >
-                    {ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
@@ -282,7 +293,8 @@ export default function Page() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this user? This action cannot be undone.
+              Are you sure you want to delete this user? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
 

@@ -1,7 +1,8 @@
 // app/api/schedules/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma  from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
+import { sendEmail } from "@/lib/mailer";
 
 type ScheduleEntryInput = {
   date: string; // ISO date string "2024-01-15"
@@ -18,10 +19,7 @@ export async function POST(req: NextRequest) {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body: CreateScheduleBatchRequest = await req.json();
@@ -84,9 +82,10 @@ export async function POST(req: NextRequest) {
 
     console.log("Date range:", startDate, endDate);
 
-    const totalDays = Math.floor(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    ) + 1;
+    const totalDays =
+      Math.floor(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
 
     const preparedEntries = entries.map((entry) => {
       const [startH, startM] = entry.startTime.split(":").map(Number);
@@ -96,7 +95,15 @@ export async function POST(req: NextRequest) {
       const [year, month, day] = entry.date.split("-").map(Number);
       const entryDate = new Date(year, month - 1, day);
 
-      const startDateTime = new Date(year, month - 1, day, startH, startM, 0, 0);
+      const startDateTime = new Date(
+        year,
+        month - 1,
+        day,
+        startH,
+        startM,
+        0,
+        0
+      );
       const endDateTime = new Date(year, month - 1, day, endH, endM, 0, 0);
 
       const totalHours =
@@ -141,6 +148,40 @@ export async function POST(req: NextRequest) {
         },
       },
     });
+    const uniqueUsers = new Map<
+      string,
+      { firstName?: string; lastName?: string }
+    >();
+
+    batch.entries.forEach((entry) => {
+      if (entry.user?.email) {
+        uniqueUsers.set(entry.user.email, {
+          firstName: entry.user.firstName ?? "",
+          lastName: entry.user.lastName ?? "",
+        });
+      }
+    });
+
+    if (uniqueUsers.size > 0) {
+      Promise.all(
+        [...uniqueUsers.entries()].map(([email, user]) =>
+          sendEmail(
+            email,
+            "📝 Drafted schedule available",
+            `
+        <p>Hello ${user.firstName} ${user.lastName},</p>
+        <p>Your work schedule has been <b>drafted</b>.</p>
+        <p>Please login and visit your dashboard to see the drafted schedule.</p>
+        <p>For any updates, contact admin.</p>
+        <br/>
+        <p>— Team</p>
+        `
+          )
+        )
+      ).catch((err) => {
+        console.error("Background email error:", err);
+      });
+    }
 
     // console.log("Batch created:", batch);
 

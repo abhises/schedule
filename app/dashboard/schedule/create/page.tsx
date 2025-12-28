@@ -119,15 +119,22 @@ export default function CreateSchedulePage() {
   const getUserColor = (userId: number) =>
     USER_COLORS[userId % USER_COLORS.length];
 
-  const hasDuplicate = (date: Date, userId: number) =>
-    drafts.some(
-      (d) =>
-        d.date.toDateString() === date.toDateString() &&
-        d.userIds.includes(userId)
-    );
+  // const hasDuplicate = (date: Date, userId: number) =>
+  //   drafts.some(
+  //     (d) =>
+  //       d.date.toDateString() === date.toDateString() &&
+  //       d.userIds.includes(userId)
+  //   );
 
-  const hasConflict = (userId: number, start: Date, end: Date) =>
-    events.some((e) => e.userId === userId && start < e.end && end > e.start);
+  const hasConflict = (userId: number, date: Date, start: Date, end: Date) => {
+    return events.some((e) => {
+      const sameUser = e.userId === userId;
+      const sameDay = e.start.toDateString() === date.toDateString();
+      const overlap = start < e.end && end > e.start;
+
+      return sameUser && sameDay && overlap;
+    });
+  };
 
   const isDateDisabled = (date: Date): boolean => {
     const today = new Date();
@@ -183,15 +190,16 @@ export default function CreateSchedulePage() {
 
     const newDrafts: DraftSchedule[] = [];
     const newEvents: CalendarEvent[] = [];
+    const validUsers = selectedUsers;
 
-    const validUsers = selectedUsers.filter(
-      (uid) => !hasDuplicate(baseDate, uid)
-    );
+    // const validUsers = selectedUsers.filter(
+    //   (uid) => !hasDuplicate(baseDate, uid)
+    // );
 
-    if (validUsers.length === 0) {
-      setError("All selected users already have a schedule for this date");
-      return;
-    }
+    // if (validUsers.length === 0) {
+    //   setError("All selected users already have a schedule for this date");
+    //   return;
+    // }
 
     const draftId = crypto.randomUUID();
 
@@ -213,9 +221,8 @@ export default function CreateSchedulePage() {
 
       start.setHours(sh, sm);
       end.setHours(eh, em);
-
-      if (hasConflict(uid, start, end)) {
-        setError(`Time conflict detected for ${user?.firstName}`);
+      if (hasConflict(uid, baseDate, start, end)) {
+        setError(`${user?.firstName} already has a schedule during this time`);
         return;
       }
 
